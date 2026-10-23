@@ -2,7 +2,7 @@
 
 使用者打开网站，上传教材（或教材与课件、提纲、解析、真题），选择资料主次，等待处理和检查，下载一个可离线学习的 HTML。无需安装 Codex、配置模型密钥或启动本机服务器。
 
-**当前交付为可部署工程，不是已经上线的公共网站。** 当前开发环境没有模型 API 和公网服务器。网页交互、真实打包、离线浏览器与故障门禁经过测试；付费模型的完整转换和容器部署尚未实测，详见 `ACCEPTANCE.md`。模型测试替身只在 `tests/`，生产服务没有假转换开关。
+**当前交付为可部署工程，不是已经上线的公共网站。** 当前开发环境没有模型 API 和公网服务器。网页交互、真实打包、离线浏览器与故障门禁经过测试；Linux 容器构建、持久卷、Chromium 与 HTTP 服务已实测通过。付费模型的完整转换、目标服务器与公网 HTTPS 尚未实测，详见 `ACCEPTANCE.md`。模型测试替身只在 `tests/`，生产服务没有假转换开关。
 
 本仓库包含网页、任务后台、转换流程、检查工具与 Docker Compose 部署配置。仅需在 Codex 中使用 Skill 时，可使用独立的 [digital-textbook-html 仓库](https://github.com/zjyu1712-zjy/digital-textbook-html)。本工程随附 `skill/`，部署时不需要安装 Codex，也不需要从另一仓库临时下载组件。
 
@@ -48,7 +48,7 @@ cp .env.example .env
 python3 -m portal --port 8000
 ```
 
-打开 `http://127.0.0.1:8000`。此开发入口只监听本机，不能把它当作公网发布方式。手动运行转换时，Python 需 3.12 或更新版，安装 `requirements.txt`、Node/Playwright 和可用 Chromium 浏览器；可设置 `NODE_BINARY`、`PLAYWRIGHT_MODULE`、`BROWSER_EXECUTABLE`。容器已声明这些依赖，但当前机器没有 Docker，容器构建仍需上线时实测。
+打开 `http://127.0.0.1:8000`。此开发入口只监听本机，不能把它当作公网发布方式。手动运行转换时，Python 需 3.12 或更新版，安装 `requirements.txt`、Node/Playwright 和可用 Chromium 浏览器；可设置 `NODE_BINARY`、`PLAYWRIGHT_MODULE`、`BROWSER_EXECUTABLE`。容器使用 Python 3.12、Node 24 和 Linux Chromium，已在 GitHub Linux runner 实际构建并通过离线浏览器预检。目标服务器上的网络、DNS、HTTPS 与真实模型权限仍需上线时实测。手动运行需 Node 20 或更新版；Node 18 无法启动当前 Playwright。
 
 ## 转换与检查
 
