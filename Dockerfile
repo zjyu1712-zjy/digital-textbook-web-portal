@@ -1,10 +1,19 @@
+FROM node:24-bookworm-slim AS javascript
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+WORKDIR /build
+COPY package.json ./
+RUN npm install --omit=dev --ignore-scripts
+
 FROM python:3.12-slim-bookworm
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm chromium fonts-noto-cjk fonts-dejavu-core ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends chromium fonts-noto-cjk fonts-dejavu-core ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY requirements.txt package.json ./
-RUN pip install --no-cache-dir -r requirements.txt && npm install --omit=dev --ignore-scripts \
+COPY --from=javascript /usr/local/bin/node /usr/local/bin/node
+COPY --from=javascript /build/node_modules ./node_modules
+RUN node --version && node -e "require('playwright')"
+RUN pip install --no-cache-dir -r requirements.txt \
     && useradd --create-home --uid 10001 textbook
 COPY portal ./portal
 COPY static ./static

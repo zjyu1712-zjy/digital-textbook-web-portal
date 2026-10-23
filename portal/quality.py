@@ -35,6 +35,7 @@ def run_browser(html_path: Path, report_dir: Path, timeout: int = 180) -> dict:
     output = run_dir / "runtime-report.json"
     script = Path(__file__).resolve().parents[1] / "tests" / "runtime-check.cjs"
     expected_hash = hashlib.sha256(html_path.read_bytes()).hexdigest()
+    timed_out = False
     try:
         process = subprocess.Popen(
             [node, str(script), str(html_path), str(output)],
@@ -44,14 +45,24 @@ def run_browser(html_path: Path, report_dir: Path, timeout: int = 180) -> dict:
         try:
             stdout, stderr = process.communicate(timeout=max(1, timeout))
         except subprocess.TimeoutExpired:
-            if os.name == "posix":
-                os.killpg(process.pid, signal.SIGKILL)
-            else:
-                process.kill()
-            process.communicate()
-            return _result("unverified", "真实浏览器检查超时，未完成的检查不能视为通过。")
+            try:
+                if os.name == "posix":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+            except ProcessLookupError:
+                pass  # The process may exit between the timeout and kill.
+            stdout, stderr = process.communicate()
+            timed_out = True
     except OSError:
         return _result("unverified", "无法启动浏览器检查进程，请检查 Node 与运行权限。")
+    # Preserve private diagnostics even when the report is absent or invalid.
+    try:
+        (run_dir / "process.log").write_text(stdout + "\n" + stderr, encoding="utf-8")
+    except OSError:
+        pass  # Diagnostic storage must not replace the report's verdict.
+    if timed_out:
+        return _result("unverified", "真实浏览器检查超时，未完成的检查不能视为通过。")
     try:
         report = json.loads(output.read_text(encoding="utf-8"))
         if not isinstance(report, dict):
@@ -81,8 +92,6 @@ def run_browser(html_path: Path, report_dir: Path, timeout: int = 180) -> dict:
                 raise ValueError("cannot accept success")
     except (OSError, ValueError, TypeError, AssertionError):
         return _result("fail", "浏览器未产生有效且对应当前 HTML 的检查报告，不能交付为已通过。")
-    # Logs are kept locally for diagnosis; never injected into a public error.
-    (run_dir / "process.log").write_text(stdout + "\n" + stderr, encoding="utf-8")
     report["reportPath"] = str(output)
     report.setdefault("detail", "仅覆盖报告列出的真实浏览器检查；内容学术与视觉语义需单独核查。")
     return report
