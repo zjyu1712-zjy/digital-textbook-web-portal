@@ -100,6 +100,36 @@ jobs:
           print('PASS: real HTTP service is healthy; model configuration remains unverified')
           PY
 
+      - name: Diagnose browser failure using only the authored fixture
+        if: failure()
+        run: |
+          docker run --rm -i --network none --shm-size=256m \
+            --mount "source=$DATA_VOLUME,target=/data" "$CHECK_IMAGE" python - <<'PY' 2>&1 | tee container-logs/browser-diagnostic.log
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import tempfile
+          from portal.runner import load_pipeline
+
+          for command in (['node', '--version'], ['/usr/bin/chromium', '--version']):
+              result = subprocess.run(command, capture_output=True, text=True)
+              print(command[0], result.returncode, result.stdout, result.stderr, flush=True)
+          with tempfile.TemporaryDirectory(dir='/data', prefix='ci-browser-') as directory:
+              root = Path(directory)
+              pipeline = load_pipeline(Path('/app/skill'))
+              course = pipeline.read(Path('/app/skill/tests/fixtures/general.json'))
+              inventory = pipeline.read(Path('/app/skill/tests/fixtures/inventory.json'))
+              html, report = root / 'sample.html', root / 'report.json'
+              pipeline.build(course, inventory, html, root)
+              process = subprocess.run(['node', '/app/tests/runtime-check.cjs', str(html), str(report)],
+                                       capture_output=True, text=True, timeout=180)
+              print('Browser exit:', process.returncode, flush=True)
+              print('Browser stdout:', process.stdout, flush=True)
+              print('Browser stderr:', process.stderr, flush=True)
+              print('Browser report:', report.read_text() if report.exists() else 'MISSING', flush=True)
+          PY
+
       - name: Collect server logs and remove temporary resources
         if: always()
         run: |

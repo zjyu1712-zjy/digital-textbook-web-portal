@@ -33,7 +33,7 @@ chmod 600 .env
 | `DASHSCOPE_MODEL` | 示例为 `qwen3-vl-plus`，需确认账号可调用并支持图片及非思考 JSON mode |
 | `PORTAL_ACCESS_CODE` | 自设的共享试用访问码，与模型密钥分开 |
 
-服务只请求固定的百炼北京官方域名：`https://{业务空间ID}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions`。不接受任意转发地址，也不会退回使用另一家服务的密钥。网页授权提示及成品核查说明会显示“阿里云百炼”。不要把完整教材写入镜像或仓库。
+服务只请求固定的百炼北京官方域名：`https://{业务空间ID}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1/chat/completions`。不接受任意转发地址，也不会退回使用另一家服务的密钥。网页授权提示及成品核查说明会显示“阿里云百炼”。上传、排队执行和重试均核对用户授权的服务商；切换服务商后旧任务不会自动转发，需重新上传并授权。不要把完整教材写入镜像或仓库。
 
 ```sh
 docker compose up --build -d
