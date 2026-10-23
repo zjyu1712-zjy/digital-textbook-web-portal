@@ -90,6 +90,8 @@ class Converter:
         def passed(name, detail):
             checks.append({'name': name, 'status': 'pass', 'detail': detail})
         stop()
+        _require(manifest.get('modelProvider', 'openai') == self.config.provider,
+                 '模型服务商已改变，请重新上传资料并确认新的服务商授权；本任务没有向新服务商发送资料。')
         emit('extracting', '正在读取资料并保留原页、图表和来源位置。')
         extracted = extract_sources(root, manifest, self.config.max_pages, cancelled)
         save_json(root / 'extraction.json', extracted)
@@ -223,7 +225,7 @@ sourceProblem=true 表示缺页、不可辨认、歧义或来源冲突，不能�
                 emit('reviewing', f"{chapter['title']} 尚有遗漏或错误，正在针对问题修复。")
             _require(not errors, '本单元经过三轮仍未通过：' + '; '.join(errors[:10]))
             targets = [s['id'] for s in unit_result['sections']] + [q['id'] for q in unit_result['questions']]
-            unit_review = {'targetIds': targets, 'reviewer': 'OpenAI/' + self.config.model,
+            unit_review = {'targetIds': targets, 'reviewer': self.config.provider_label + '/' + self.config.model,
                            'method': '独立请求逐项对照原页、原题与来源清单；模型核查，不等同于教师认证',
                            'result': 'pass', 'evidence': review['evidence']}
             save_json(root / 'chapters' / (unit['id'] + '.json'), {'content': unit_result, 'semanticReview': unit_review})
@@ -291,7 +293,7 @@ sourceProblem=true 表示缺页、不可辨认、歧义或来源冲突，不能�
         passed('浏览器功能检查', '实际 file:// 离线检查通过；具体适用题型、记录恢复和布局范围见内嵌验收。')
         passed('截图视觉核查', str(visual.get('scope', '实际截图可见区域')) + '；' + visual['evidence'])
         course['acceptance'] = [
-            {'type': 'paragraph', 'text': '本文件为离线学习成品。转换时使用 OpenAI 模型理解原资料和核查；阅读与作答无需联网。模型核查不能替代教材和教师的最终学术判断。'},
+            {'type': 'paragraph', 'text': f'本文件为离线学习成品。转换时使用{self.config.provider_label}模型理解原资料和核查；阅读与作答无需联网。模型核查不能替代教材和教师的最终学术判断。'},
             {'type': 'list', 'items': [c['name'] + '：' + c['detail'] for c in checks]},
             {'type': 'details', 'title': '实际浏览器检查范围', 'blocks': [
                 {'type': 'paragraph', 'text': str(browser.get('browser', browser.get('detail', 'file:// 离线浏览器')))},

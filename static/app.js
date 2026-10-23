@@ -133,7 +133,8 @@
     try {
       const response = await api('/api/config');
       const config = await response.json();
-      if (!config || typeof config.ready !== 'boolean' || !config.limits) throw new Error('Invalid configuration');
+      if (!config || typeof config.ready !== 'boolean' || !config.limits || !['openai', 'bailian'].includes(config.providerId)) throw new Error('Invalid configuration');
+      if (state.config?.providerId !== config.providerId) byId('consent').checked = false;
       state.config = config;
       const ready = config.ready;
       byId('service-status').classList.toggle('is-ready', ready);
@@ -150,7 +151,7 @@
       const retention = Number.isFinite(hours) && hours > 0 ? `${hours} 小时` : '服务规定的期限';
       byId('retention-note').textContent = `资料和成品自提交起保留 ${retention}，随后自动清理。你也可以在任务页面主动删除，请及时下载成品。`;
       byId('consent-retention').textContent = `资料和成品自提交起保留 ${retention}，也可在任务页面主动删除。`;
-      byId('provider-name').textContent = typeof config.provider === 'string' && config.provider ? config.provider : 'OpenAI';
+      byId('provider-name').textContent = typeof config.provider === 'string' && config.provider ? config.provider : '模型服务（待确认）';
       byId('access-code-field').hidden = !config.accessCodeRequired;
       byId('access-code').required = Boolean(config.accessCodeRequired);
       validateChosenFiles();
@@ -286,7 +287,7 @@
       for (const entry of state.files) files.push({ name: entry.file.name, role: entry.role, primary: entry.primary, data: await fileBase64(entry.file) });
       const body = {
         title: byId('book-title').value.trim() || (state.files.find(entry => entry.primary)?.file.name || '交互学习教材').replace(/\.[^.]+$/, '').slice(0, 120), mode: byId('material-mode').value,
-        scope: byId('scope').value.trim(), consent: byId('consent').checked, files
+        scope: byId('scope').value.trim(), consent: byId('consent').checked, consentProvider: state.config.providerId, files
       };
       if (state.config.accessCodeRequired) body.accessCode = byId('access-code').value;
       const response = await api('/api/jobs', { method: 'POST', body: JSON.stringify(body) }, null, 120000);

@@ -6,6 +6,8 @@
 
 本仓库包含网页、任务后台、转换流程、检查工具与 Docker Compose 部署配置。仅需在 Codex 中使用 Skill 时，可使用独立的 [digital-textbook-html 仓库](https://github.com/zjyu1712-zjy/digital-textbook-html)。本工程随附 `skill/`，部署时不需要安装 Codex，也不需要从另一仓库临时下载组件。
 
+中国大陆、月预算 200 元以内的试用部署，先看 [国内上线步骤](docs/mainland-deployment.md)：阿里云账号、百炼北京模型 API、轻量服务器与域名备案。对应配置为 `.env.bailian.example`；无需使用者安装 Codex。
+
 下载工程：
 
 ```sh
@@ -18,9 +20,9 @@ cp .env.example .env
 
 ## 网站管理者上线
 
-准备一台可访问模型服务的 Linux 服务器、Docker Compose、指向服务器的域名，以及支持视觉输入与 Responses JSON 模式的 OpenAI API 凭据。模型调用与服务器费用由管理者承担；ChatGPT/Codex 登录状态不会自动变成此网站的 API 凭据。建议先限量试用，通过短教材实际转换再开放。
+准备一台可访问模型服务的 Linux 服务器、Docker Compose、指向服务器的域名，以及模型 API 凭据。支持阿里云百炼北京业务空间（视觉输入、非思考 JSON mode）或 OpenAI Responses（视觉输入、JSON mode）。模型调用与服务器费用由管理者承担；ChatGPT/Codex 登录状态不会自动变成此网站的 API 凭据。建议先限量试用，通过短教材实际转换再开放。
 
-1. 在服务器下载本工程并准备 `.env`，只在服务器填写 `PORTAL_DOMAIN`、与它一致的 HTTPS `PORTAL_PUBLIC_ORIGIN`、`OPENAI_API_KEY`、`OPENAI_MODEL`。不要把密钥发到聊天、前端代码或分享包里。
+1. 在服务器下载本工程。百炼复制 `.env.bailian.example` 为 `.env`，填写业务空间、模型与 API Key；OpenAI 使用 `.env.example`。两者都要填写 `PORTAL_DOMAIN` 及一致的 HTTPS `PORTAL_PUBLIC_ORIGIN`。不要把密钥发到聊天、前端代码或分享包里。
 2. 可设置 `PORTAL_ACCESS_CODE`，先让使用者凭共享访问码进入转换。访问码不是模型密钥，也不是账号系统。未设置访问码时，知道网站地址的人均可提交并消耗模型费用；仍有任务、文件、调用和存储限额。
 3. 确认域名已经解析，80/443 端口可达，然后在该目录执行：
 
@@ -60,7 +62,7 @@ python3 -m portal --port 8000
 
 ## 数据与边界
 
-模型密钥只保留在服务器环境中，浏览器与生成 HTML 不包含密钥。上传时页面明确告知资料将发送至 OpenAI，由使用者勾选同意；服务不会把它送到其他自定义地址，不跟随模型 API 重定向。`store:false` 关闭 Responses 应用状态保存，不代表服务商无任何日志或保留；服务商数据规则见官方说明。
+模型密钥只保留在服务器环境中，浏览器与生成 HTML 不包含密钥。上传时页面显示当前服务商（阿里云百炼或 OpenAI），由使用者勾选同意；服务只访问所选服务商的固定官方地址，不接受自定义转发地址，不跟随模型 API 重定向。百炼配置不会读取 OpenAI 密钥，反向亦然。OpenAI 请求使用 `store:false`，仅关闭 Responses 应用状态保存；百炼不使用该参数。两者均不能据此宣称服务商无日志或零保留，应核对各自数据规则。
 
 任务访问凭据随机生成，服务端只存凭据哈希；每个任务隔离。网页将任务编号和凭据存入当前浏览器，刷新或重开可恢复。清理浏览器或丢失这些凭据后，当前没有账号找回机制。凭据不出现在下载 URL，可见范围内的使用者应保护自己的浏览器。
 
@@ -79,4 +81,8 @@ node tests/runtime-check.cjs /absolute/path/to/generated.html /absolute/path/to/
 
 `ACCEPTANCE.md` 记录开发阶段的验收范围，`docs/publication-check.md` 记录本公开副本的复测。原始浏览器运行目录、截图和完整日志保留在本地开发工作区，未随仓库发布；修复摘要中的报告路径仅用于追溯，公开仓库提供可重新运行的测试代码。`.env`、任务数据库、上传教材、用户作答、依赖缓存均不属于发布内容。
 
-API 实现依据：[Responses JSON 模式](https://developers.openai.com/api/docs/guides/structured-outputs#json-mode)、[视觉输入](https://developers.openai.com/api/docs/guides/images-vision#analyze-images)、[数据控制](https://developers.openai.com/api/docs/guides/your-data)。
+可在 GitHub Actions 手动运行 **Container check (no model calls)**，构建实际 Dockerfile 并在断网容器检查两套测试、持久卷、Linux Chromium 和 HTTP 服务。该流程不读取真实密钥、不调用模型、不部署网站。
+
+百炼 API 实现依据：[首次调用与北京业务空间](https://help.aliyun.com/zh/model-studio/first-api-call-to-qwen)、[兼容接口](https://help.aliyun.com/zh/model-studio/qwen-api-via-openai-chat-completions)、[视觉输入](https://help.aliyun.com/zh/model-studio/vision/)、[JSON 模式](https://help.aliyun.com/zh/model-studio/qwen-structured-output)。
+
+OpenAI API 实现依据：[Responses JSON 模式](https://developers.openai.com/api/docs/guides/structured-outputs#json-mode)、[视觉输入](https://developers.openai.com/api/docs/guides/images-vision#analyze-images)、[数据控制](https://developers.openai.com/api/docs/guides/your-data)。

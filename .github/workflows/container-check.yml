@@ -1,0 +1,120 @@
+name: Container check (no model calls)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  container-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CHECK_IMAGE: textbook-check:${{ github.run_id }}-${{ github.run_attempt }}
+      CHECK_CONTAINER: textbook-check-${{ github.run_id }}-${{ github.run_attempt }}
+      DATA_VOLUME: textbook-check-data-${{ github.run_id }}-${{ github.run_attempt }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the production Dockerfile
+        run: |
+          mkdir -p container-logs
+          docker build --progress plain --file Dockerfile --tag "$CHECK_IMAGE" . 2>&1 | tee container-logs/build.log
+          docker volume create "$DATA_VOLUME"
+
+      - name: Run portal and skill tests in the image
+        run: |
+          docker run --rm --network none --shm-size=256m \
+            --mount "type=bind,source=$PWD/tests,target=/app/tests,readonly" \
+            --mount "source=$DATA_VOLUME,target=/data" \
+            "$CHECK_IMAGE" python -m unittest discover -s tests -p 'test_*.py' -v \
+            2>&1 | tee container-logs/portal-tests.log
+          docker run --rm --network none --shm-size=256m \
+            --mount "type=bind,source=$PWD/skill/tests,target=/app/skill/tests,readonly" \
+            --mount "source=$DATA_VOLUME,target=/data" \
+            "$CHECK_IMAGE" python -m unittest discover -s skill/tests -p 'test_*.py' -v \
+            2>&1 | tee container-logs/skill-tests.log
+
+      - name: Check persistent storage as the image user
+        run: |
+          docker run --rm --network none --shm-size=256m \
+            --mount "source=$DATA_VOLUME,target=/data" \
+            "$CHECK_IMAGE" python -c 'import os; from pathlib import Path; assert os.getuid() == 10001, "Expected the textbook user"; Path("/data/ci-volume-probe").write_text("container-write-ok"); print("PASS: textbook user wrote to the named volume")' \
+            2>&1 | tee container-logs/volume-check.log
+
+      - name: Run real browser preflight without model configuration
+        run: |
+          set +e
+          docker run --rm --network none --shm-size=256m \
+            --mount "source=$DATA_VOLUME,target=/data" \
+            "$CHECK_IMAGE" python scripts/preflight.py --browser \
+            > container-logs/preflight.json 2> container-logs/preflight.stderr.log
+          preflight_exit=$?
+          set -e
+          printf '%s\n' "$preflight_exit" > container-logs/preflight.exit-code.txt
+          cat container-logs/preflight.json
+          cat container-logs/preflight.stderr.log >&2
+          python3 scripts/container_preflight_check.py container-logs/preflight.json "$preflight_exit" \
+            2>&1 | tee container-logs/preflight-check.log
+
+      - name: Start the production server and check HTTP and persisted data
+        run: |
+          docker run --detach --name "$CHECK_CONTAINER" --network none \
+            --mount "source=$DATA_VOLUME,target=/data" "$CHECK_IMAGE"
+          docker exec -i "$CHECK_CONTAINER" python - <<'PY' 2>&1 | tee container-logs/http-check.log
+          import json
+          import os
+          from pathlib import Path
+          import time
+          from urllib.error import URLError
+          from urllib.request import urlopen
+
+          assert os.getuid() == 10001, "Expected the textbook user"
+          probe = Path('/data/ci-volume-probe')
+          assert probe.read_text() == 'container-write-ok', 'Named volume did not persist across containers'
+          probe.unlink()
+          print('PASS: textbook user read and removed the persisted volume probe')
+          for attempt in range(30):
+              try:
+                  with urlopen('http://127.0.0.1:8000/healthz', timeout=2) as response:
+                      assert response.status == 200
+                      health = json.load(response)
+                  break
+              except (URLError, TimeoutError):
+                  if attempt == 29:
+                      raise
+                  time.sleep(1)
+          assert health == {'status': 'ok'}, health
+          with urlopen('http://127.0.0.1:8000/api/config', timeout=2) as response:
+              assert response.status == 200
+              config = json.load(response)
+          assert config['ready'] is False, config
+          assert config['reasons'] == ['管理员尚未配置模型 API 凭据', '管理员尚未指定转换模型'], config
+          print(json.dumps({'healthz': health, 'config': config}, ensure_ascii=False, indent=2))
+          print('PASS: real HTTP service is healthy; model configuration remains unverified')
+          PY
+
+      - name: Collect server logs and remove temporary resources
+        if: always()
+        run: |
+          mkdir -p container-logs
+          if docker container inspect "$CHECK_CONTAINER" > /dev/null 2>&1; then
+            docker logs "$CHECK_CONTAINER" > container-logs/server.log 2>&1
+            docker rm --force "$CHECK_CONTAINER"
+          fi
+          docker volume rm "$DATA_VOLUME" || true
+
+      - name: Upload check logs
+        if: always()
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: container-check-${{ github.run_id }}-${{ github.run_attempt }}
+          path: container-logs/
+          retention-days: 7
+          if-no-files-found: error

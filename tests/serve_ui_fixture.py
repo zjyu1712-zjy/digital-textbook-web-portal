@@ -67,6 +67,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, required=True)
     parser.add_argument("--unconfigured", action="store_true")
+    parser.add_argument("--provider", choices=("openai", "bailian"), default="openai")
     args = parser.parse_args()
     # Never use persistent project or user data, and never read real API keys.
     with tempfile.TemporaryDirectory(prefix="textbook-ui-fixture-") as tmp:
@@ -76,6 +77,7 @@ def main():
             model="" if args.unconfigured else "fixed-self-authored-fixture",
             public_origin=f"http://127.0.0.1:{args.port}", access_code="ui-test-access",
             min_free_bytes=0,
+            provider=args.provider, bailian_workspace_id="test-space" if args.provider == "bailian" else "",
         )
         app = create_app(config, converter_factory=FixedSampleConverter)
         try:

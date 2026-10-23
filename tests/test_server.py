@@ -66,7 +66,7 @@ class PortalTests(unittest.TestCase):
         return captured
 
     def payload(self, **updates):
-        p = {"title": "测试课本", "mode": "auto", "scope": "所上传内容", "consent": True, "files": [{"name": "教材.txt", "role": "textbook", "primary": True, "data": base64.b64encode("第一章\n实际教材正文".encode()).decode()}]}
+        p = {"title": "测试课本", "mode": "auto", "scope": "所上传内容", "consent": True, "consentProvider": "openai", "files": [{"name": "教材.txt", "role": "textbook", "primary": True, "data": base64.b64encode("第一章\n实际教材正文".encode()).decode()}]}
         p.update(updates)
         return p
 
@@ -88,6 +88,85 @@ class PortalTests(unittest.TestCase):
         result = self.call()["body"]
         self.assertTrue(result["ready"])
         self.assertNotIn(self.config.api_key, json.dumps(result))
+
+    def test_consent_provider_matches_configured_data_destination(self):
+        self.assertEqual(self.call()["body"]["provider"], "OpenAI")
+        self.assertEqual(self.call()["body"].get("providerId"), "openai")
+        app = self.make_app(config=replace(self.config, provider="bailian", bailian_workspace_id="test-space"))
+        result = self.call(app=app)["body"]
+        self.assertEqual(result["provider"], "阿里云百炼")
+        self.assertEqual(result.get("providerId"), "bailian")
+        self.assertTrue(result["ready"])
+        self.assertNotIn("test-space", json.dumps(result))
+        self.assertNotIn(self.config.api_key, json.dumps(result))
+
+    def test_changed_or_missing_consent_provider_rejects_upload_without_saving(self):
+        app = self.make_app(config=replace(self.config, provider="bailian", bailian_workspace_id="test-space"))
+        for consent_provider in ("openai", None, "other", True):
+            with self.subTest(consent_provider=consent_provider):
+                payload = self.payload(consentProvider=consent_provider)
+                if consent_provider is None:
+                    payload.pop("consentProvider")
+                response = self.call("/api/jobs", "POST", payload, app=app)
+                self.assertEqual(response["status"], 409)
+                self.assertIn("重新确认", response["body"]["error"])
+        self.assertEqual(list(app.jobs_dir.iterdir()), [])
+        self.assertIsNone(app.store.claim())
+
+    def test_new_manifest_records_authorized_provider_in_database_and_file(self):
+        app = self.make_app(config=replace(self.config, provider="bailian", bailian_workspace_id="test-space"))
+        response = self.call("/api/jobs", "POST", self.payload(consentProvider="bailian"), app=app)
+        self.assertEqual(response["status"], 202)
+        job = response["body"]
+        stored = json.loads(app.store.get(job["id"])["manifest"])
+        manifest = json.loads((app.jobs_dir / job["id"] / "manifest.json").read_text())
+        self.assertEqual(stored.get("modelProvider"), "bailian")
+        self.assertEqual(manifest.get("modelProvider"), "bailian")
+
+    def test_worker_provider_switch_blocks_new_and_legacy_jobs_before_converter(self):
+        constructed = []
+        def converter_factory(config):
+            constructed.append(config.provider)
+            return GoodConverter(config)
+        switched = self.make_app(config=replace(self.config, provider="bailian", bailian_workspace_id="test-space"), converter_factory=converter_factory)
+        for legacy in (False, True):
+            with self.subTest(legacy=legacy):
+                job = self.submit()
+                manifest = json.loads(self.app.store.get(job["id"])["manifest"])
+                if legacy:
+                    manifest.pop("modelProvider", None)
+                else:
+                    manifest["modelProvider"] = "openai"
+                with self.app.store.connection() as con:
+                    con.execute("UPDATE jobs SET manifest=? WHERE id=?", (json.dumps(manifest), job["id"]))
+                self.assertTrue(switched.process_one())
+                row = switched.store.get(job["id"])
+                self.assertEqual(row["status"], "needs_attention")
+                self.assertIn("重新上传", row["message"])
+                self.assertIsNone(row["artifact"])
+                self.assertEqual(json.loads(row["manifest"]), manifest)
+        self.assertEqual(constructed, [])
+
+    def test_retry_with_changed_provider_is_rejected_before_requeue(self):
+        job = self.submit()
+        self.call(self.path(job, "/cancel"), "POST", {}, token=job["token"])
+        app = self.make_app(config=replace(self.config, provider="bailian", bailian_workspace_id="test-space"))
+        response = self.call(self.path(job, "/retry"), "POST", {}, token=job["token"], app=app)
+        self.assertEqual(response["status"], 409)
+        self.assertIn("重新上传", response["body"]["error"])
+        self.assertEqual(app.store.get(job["id"])["status"], "cancelled")
+        self.assertIsNone(app.store.claim())
+
+    def test_legacy_openai_job_remains_compatible_without_rewriting_manifest(self):
+        job = self.submit()
+        manifest = json.loads(self.app.store.get(job["id"])["manifest"])
+        manifest.pop("modelProvider", None)
+        with self.app.store.connection() as con:
+            con.execute("UPDATE jobs SET manifest=? WHERE id=?", (json.dumps(manifest), job["id"]))
+        self.assertTrue(self.app.process_one())
+        row = self.app.store.get(job["id"])
+        self.assertEqual(row["status"], "ready")
+        self.assertEqual(json.loads(row["manifest"]), manifest)
 
     def test_host_origin_and_fetch_metadata_are_checked(self):
         self.assertEqual(self.call(HTTP_HOST="evil.example")["status"], 403)

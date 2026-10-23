@@ -5,7 +5,7 @@ import json
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-TOP={'README.md','ACCEPTANCE.md','requirements.txt','package.json','Dockerfile','compose.yaml','Caddyfile','.env.example','.gitignore','.dockerignore'}
+TOP={'README.md','ACCEPTANCE.md','requirements.txt','package.json','Dockerfile','compose.yaml','Caddyfile','.env.example','.env.bailian.example','.gitignore','.dockerignore'}
 DIRS={'portal','static','skill','scripts','tests','docs'}
 
 

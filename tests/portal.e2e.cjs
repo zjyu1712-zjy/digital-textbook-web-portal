@@ -24,7 +24,7 @@ const readyPort = Number(process.env.UI_READY_PORT || 8011), offPort = Number(pr
 const readyBase = `http://127.0.0.1:${readyPort}`, offBase = `http://127.0.0.1:${offPort}`;
 const delay = ms => new Promise(resolve=>setTimeout(resolve,ms));
 async function serve(port, missing=false) {
-  const args = [path.join(root,'tests','serve_ui_fixture.py'),'--port',String(port),...(missing?['--unconfigured']:[])];
+  const args = [path.join(root,'tests','serve_ui_fixture.py'),'--port',String(port),...(missing?['--unconfigured']:['--provider','bailian'])];
   const child = spawn(process.env.PYTHON || 'python3', args, {cwd:root, stdio:['ignore','pipe','pipe'], env:process.env});
   servers.push(child);
   let log='';
@@ -83,6 +83,7 @@ async function finish(page) {
   const noAPI=await missing.newPage();
   await noAPI.goto(offBase);
   await noAPI.getByText('转换服务尚未启用',{exact:true}).waitFor();
+  assert.equal(await noAPI.locator('#provider-name').innerText(),'OpenAI');
   assert.equal(await noAPI.locator('#consent').isChecked(),false);
   await selectFixture(noAPI);
   await noAPI.locator('#book-title').fill('无模型时不可伪造转换');
@@ -100,6 +101,8 @@ async function finish(page) {
   const page=await c.newPage();
   await page.goto(readyBase);
   await page.getByText('转换服务已就绪',{exact:true}).waitFor();
+  assert.equal(await page.locator('#provider-name').innerText(),'阿里云百炼');
+  pass('上传授权显示实际服务商，OpenAI 与百炼分别验证');
   assert.equal(await page.locator('#consent').isChecked(),false);
   assert(await page.locator('#access-code-field').isVisible());
   assert(await page.locator('#submit-job').isDisabled());
@@ -131,6 +134,7 @@ async function finish(page) {
   assert.equal(sent.files[0].primary,true);
   assert.equal(sent.mode,'textbook');
   assert.equal(sent.consent,true);
+  assert.equal(sent.consentProvider,'bailian');
   await page.locator('#job-panel').waitFor();
   await finish(page);
   assert.equal(await page.evaluate(()=>window.__portalInjected),undefined);

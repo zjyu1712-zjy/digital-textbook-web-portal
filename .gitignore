@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+!.env.bailian.example
 data/
 node_modules/
 .venv/

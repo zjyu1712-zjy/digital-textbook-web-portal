@@ -75,8 +75,10 @@ class ConversionTests(unittest.TestCase):
     def run_conversion(self, model=FixtureModel, browser=browser_double):
         return Converter(self.config,model,browser).run(self.root,self.manifest,lambda *a,**kw:None,lambda:False)
     def test_full_flow_real_builder_with_explicit_model_and_browser_doubles(self):
+        self.assertNotIn('modelProvider', self.manifest)
         r=self.run_conversion()
         self.assertEqual(r['status'],'ready',r)
+        self.assertNotIn('modelProvider', self.manifest)
         self.assertTrue((self.root/r['artifact']).is_file())
         course=json.loads((self.root/'course.json').read_text())
         self.assertEqual(len(course['questions']),2)
@@ -93,6 +95,34 @@ class ConversionTests(unittest.TestCase):
         stabilize_ids(a);stabilize_ids(b)
         self.assertEqual(a['questions'][0]['id'],b['questions'][0]['id'])
         self.assertEqual(a['coverage'],b['coverage'])
+    def test_bailian_provenance_in_finished_course(self):
+        self.config=replace(self.config,provider='bailian',bailian_workspace_id='test-space')
+        self.manifest['modelProvider']='bailian'
+        result=self.run_conversion()
+        self.assertEqual(result['status'],'ready',result)
+        course=json.loads((self.root/'course.json').read_text())
+        self.assertTrue(all(r['reviewer']=='阿里云百炼/test-model' for r in course['semanticReviews']))
+        self.assertIn('阿里云百炼',course['acceptance'][0]['text'])
+        self.assertNotIn('OpenAI',course['acceptance'][0]['text'])
+    def test_direct_converter_rejects_provider_change_before_model_construction(self):
+        constructed=[]
+        def model_factory(*args):
+            constructed.append(args[0].provider)
+            return FixtureModel(*args)
+        self.config=replace(self.config,provider='bailian',bailian_workspace_id='test-space')
+        for recorded in ('missing', 'openai', None, 'unknown'):
+            with self.subTest(recorded=recorded):
+                if recorded == 'missing':
+                    self.manifest.pop('modelProvider', None)
+                else:
+                    self.manifest['modelProvider']=recorded
+                before=copy.deepcopy(self.manifest)
+                result=self.run_conversion(model_factory)
+                self.assertEqual(result['status'],'needs_attention')
+                self.assertIn('重新上传',result['message'])
+                self.assertNotIn('artifact',result)
+                self.assertEqual(self.manifest,before)
+        self.assertEqual(constructed,[])
     def test_unclear_page_blocks_generation(self):
         class Unclear(FixtureModel):
             def ask(self,stage,*a,**kw):

@@ -145,7 +145,12 @@ class Portal:
                 self.store.event(job_id, self._safe_text(stage, 100), self._safe_text(message), self._checks(extras["checks"]) if "checks" in extras else None)
             try:
                 manifest = json.loads(row["manifest"])
-                result = self.converter_factory(self.config).run(job_dir, manifest, emit, cancelled)
+                if manifest.get("modelProvider", "openai") != self.config.provider:
+                    message = "模型服务商已改变，请重新上传资料并确认新的服务商授权；本任务没有向新服务商发送资料。"
+                    result = {"status": "needs_attention", "message": message,
+                              "checks": [{"name": "模型服务商授权", "status": "fail", "detail": message}]}
+                else:
+                    result = self.converter_factory(self.config).run(job_dir, manifest, emit, cancelled)
                 if not isinstance(result, dict):
                     raise ValueError("invalid converter result")
                 checks = self._checks(result.get("checks", []))
@@ -233,6 +238,8 @@ class Portal:
     def _validate_uploads(self, body):
         if body.get("consent") is not True:
             raise HTTPError(400, "请先确认有权上传资料并同意使用模型转换")
+        if body.get("consentProvider") != self.config.provider:
+            raise HTTPError(409, "模型服务商已改变或授权信息缺失，请刷新页面并重新确认服务商后提交。")
         if self.config.access_code and not hmac.compare_digest(str(body.get("accessCode", "")).encode("utf-8"), self.config.access_code.encode("utf-8")):
             raise HTTPError(403, "访问码不正确")
         title = body.get("title", "")
@@ -325,7 +332,7 @@ class Portal:
             job_dir = self.jobs_dir / job_id
             job_dir.mkdir(mode=0o700)
             (job_dir / "uploads").mkdir(mode=0o700)
-            manifest = {"id": job_id, "title": title, "mode": body["mode"], "scope": scope, "files": []}
+            manifest = {"id": job_id, "title": title, "mode": body["mode"], "scope": scope, "modelProvider": self.config.provider, "files": []}
             try:
                 for item in files:
                     content, suffix = item.pop("content"), item.pop("suffix")
@@ -367,7 +374,7 @@ class Portal:
             self._check_request_origin(env)
             path, method = env.get("PATH_INFO", "/"), env.get("REQUEST_METHOD", "GET")
             if path in {"/api/config", "/healthz"} and method == "GET":
-                body = {"status": "ok"} if path == "/healthz" else {"ready": self.config.ready, "reasons": self.config.readiness(), "limits": {"maxFiles": self.config.max_files, "maxFileBytes": self.config.max_file_bytes, "maxTotalBytes": self.config.max_total_bytes}, "formats": list(FORMATS), "retentionHours": self.config.retention_hours, "provider": "OpenAI", "accessCodeRequired": bool(self.config.access_code)}
+                body = {"status": "ok"} if path == "/healthz" else {"ready": self.config.ready, "reasons": self.config.readiness(), "limits": {"maxFiles": self.config.max_files, "maxFileBytes": self.config.max_file_bytes, "maxTotalBytes": self.config.max_total_bytes}, "formats": list(FORMATS), "retentionHours": self.config.retention_hours, "provider": self.config.provider_label, "providerId": self.config.provider, "accessCodeRequired": bool(self.config.access_code)}
                 return self._response(start, 200, body)
             if path == "/api/jobs" and method == "POST":
                 return self._response(start, 202, self._create_job(env))
@@ -391,6 +398,8 @@ class Portal:
                 if action == "retry" and method == "POST":
                     if not self.config.ready:
                         raise HTTPError(503, "转换服务尚未配置完成")
+                    if json.loads(row["manifest"]).get("modelProvider", "openai") != self.config.provider:
+                        raise HTTPError(409, "模型服务商已改变，请重新上传资料并确认新的服务商授权。")
                     if not self.store.retry(job_id, self.config.max_queue):
                         raise HTTPError(409, "任务尚在处理中或当前状态不允许重试")
                     self.wake.set()
