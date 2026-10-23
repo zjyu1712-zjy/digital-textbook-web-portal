@@ -1,0 +1,7 @@
+{
+  "name": "digital-textbook-portal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline textbook conversion service and real-browser quality gate",
+  "dependencies": {"playwright": "1.62.1"}
+}

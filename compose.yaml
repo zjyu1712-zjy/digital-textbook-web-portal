@@ -1,0 +1,36 @@
+services:
+  portal:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORTAL_DATA_DIR: /data
+      PORTAL_SKILL_DIR: /app/skill
+    volumes:
+      - textbook-data:/data
+    expose:
+      - "8000"
+    mem_limit: 3g
+    cpus: 2
+    pids_limit: 512
+    shm_size: 256m
+    security_opt:
+      - no-new-privileges:true
+  web:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN:?Set PORTAL_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - portal
+volumes:
+  textbook-data:
+  caddy-data:
+  caddy-config:

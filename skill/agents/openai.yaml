@@ -1,0 +1,4 @@
+interface:
+  display_name: "数字教材转换"
+  short_description: "将教材与课程组合资料制作成完整、离线、可作答并可保存历史的单文件学习HTML"
+  default_prompt: "用 $digital-textbook-html，按我的学习习惯将教材或组合资料转换为交互HTML，并完成自检修复。"

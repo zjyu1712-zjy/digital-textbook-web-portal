@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#174f43">
+  <title>书页 · 数字教材转换</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#workspace">跳到资料上传</a>
+  <header class="site-header wrap">
+    <a class="brand" href="/" aria-label="书页首页"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 6h8c2 0 3 2 3 3v18c0-2-2-3-4-3H5zM27 6h-8c-2 0-3 2-3 3v18c0-2 2-3 4-3h7z"/></svg></span><span>书页<small>数字教材转换</small></span></a>
+    <div class="header-note"><span aria-hidden="true">✦</span> 为完整理解，也为反复练习</div>
+    <button id="history-toggle" class="text-button" type="button" aria-expanded="false" aria-controls="saved-tasks">我的转换 <span id="task-count" class="count">0</span></button>
+  </header>
+  <main>
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span>一本教材，一处学习空间</p>
+        <h1 id="hero-title">让教材展开，<br>让学习<span class="serif-accent">留下来。</span></h1>
+        <p class="hero-description">上传教材与配套资料，整理成可以阅读、作答和回顾的交互教材。下载一个 HTML，就能在浏览器中离线学习。</p>
+        <div class="hero-features"><span>完整内容与原题</span><span>答案来源可追溯</span><span>草稿与历次作答</span></div>
+      </div>
+      <aside class="book-visual" aria-label="成品功能说明，非实际教材预览">
+        <div class="book-spine" aria-hidden="true"></div>
+        <div class="book-paper">
+          <div class="book-label">你的下一本交互教材 <span>HTML</span></div>
+          <div class="book-title">从读懂一章，<br>到真正学会。</div>
+          <div class="book-rule"></div>
+          <ol class="book-contents"><li><span>01</span> 独立章节与知识导航</li><li><span>02</span> 原例题、练习与解析</li><li><span>03</span> 作答记录与学习位置</li></ol>
+          <div class="book-footer"><span>成品包含 · 依实际资料生成</span><span aria-hidden="true">↗</span></div>
+        </div>
+        <span class="book-caption">生成时联网处理 · 下载后离线使用</span>
+      </aside>
+    </section>
+    <section id="saved-tasks" class="wrap saved-tasks" hidden aria-labelledby="saved-title">
+      <div class="section-heading"><h2 id="saved-title">这台设备上的转换</h2><span class="subtle">仅保存任务入口，资料按保留期限清理。</span></div>
+      <div id="saved-list" class="saved-list"></div>
+    </section>
+    <section id="workspace" class="workspace wrap" aria-labelledby="workspace-title">
+      <div class="workspace-heading"><div><p class="eyebrow">开始制作</p><h2 id="workspace-title">准备你的学习资料</h2></div><span class="step-summary">上传 · 整理 · 检查 · 下载</span></div>
+      <div id="global-message" class="notice" role="status" aria-live="polite" hidden></div>
+      <div id="service-status" class="service-status" role="status" aria-live="polite"><span class="status-dot" aria-hidden="true"></span><div><strong id="service-title">正在连接转换服务</strong><p id="service-detail">稍候，正在读取可用格式和上传限制。</p></div><button id="refresh-service" class="small-button" type="button" hidden>重新检查</button></div>
+      <div class="workspace-grid" id="prepare-view">
+        <form id="conversion-form" class="form-card" novalidate>
+          <div class="field-section">
+            <div class="step-title"><span class="step-number">1</span><div><h3>添加资料</h3><p>一本教材就可以开始，也可以加入课件、提纲、解析或真题。</p></div></div>
+            <label id="drop-zone" class="drop-zone" for="file-input">
+              <svg class="upload-icon" viewBox="0 0 40 40" aria-hidden="true"><path d="M11 28H8a6 6 0 0 1-1-12 12 12 0 0 1 23-3 8 8 0 0 1 1 16h-2M20 32V16m-6 6 6-6 6 6"/></svg>
+              <span class="drop-title">把资料拖到这里，或<span class="upload-action">选择文件</span></span>
+              <span id="upload-limits" class="drop-hint">支持 PDF 与文本资料，可一次选择多份资料</span>
+            </label>
+            <input id="file-input" class="visually-hidden" type="file" accept=".pdf,.txt,.md,.docx,.pptx" multiple aria-label="选择教材和配套资料">
+            <div id="file-error" class="inline-error" role="alert" hidden></div>
+            <div id="file-list" class="file-list" aria-label="已选择的资料"></div>
+            <p id="file-summary" class="file-summary" hidden></p>
+            <p class="field-note">Word、PPT 简单文稿可尝试直接上传；含复杂图形或公式时，请先在原应用导出为 PDF。扫描件的清晰度会影响识别结果。</p>
+          </div>
+          <div class="field-section">
+            <div class="step-title"><span class="step-number">2</span><div><h3>确定学习范围</h3><p>依据真实资料展开；没有上传的章节和原题不会补造。</p></div></div>
+            <label class="field-label" for="book-title">教材名称 <span>选填，默认使用主资料文件名</span></label>
+            <input id="book-title" name="title" type="text" maxlength="120" placeholder="例如：线性代数 · 第 1–3 章" autocomplete="off">
+            <div class="field-pair"><div><label class="field-label" for="material-mode">组织方式</label><select id="material-mode" name="mode"><option value="auto">根据资料自动判断</option><option value="textbook">按教材展开</option><option value="slides">按主课件展开</option><option value="outline">按提纲展开</option><option value="combined">组合资料，按主次整合</option></select></div><div class="mode-hint" id="mode-hint">只上传一本教材时，默认按教材目录组织。</div></div>
+            <label class="field-label" for="scope">范围与补充要求 <span>选填</span></label>
+            <textarea id="scope" name="scope" rows="3" maxlength="4000" placeholder="默认完整处理所上传的资料。也可说明：只转换第 1–3 章；以教师课件为主，教材补充推导。"></textarea>
+            <div id="access-code-field" hidden><label class="field-label" for="access-code">访问码</label><input id="access-code" type="password" autocomplete="off" maxlength="200" placeholder="输入服务管理员提供的访问码"><p class="field-note">访问码用于限制服务使用，不会写入学习 HTML。</p></div>
+          </div>
+          <div class="submit-section">
+            <label class="consent" for="consent"><input id="consent" type="checkbox"><span>我有权使用这些资料，并同意提交后由 <strong id="provider-name">OpenAI</strong> 处理，用于生成学习教材。<span id="consent-retention">资料和成品将在保留期后清理，也可主动删除。</span></span></label>
+            <div id="submit-error" class="inline-error" role="alert" hidden></div>
+            <button id="submit-job" class="primary-button" type="submit" disabled><span id="submit-label">开始转换</span><span aria-hidden="true">↗</span></button>
+            <p id="submit-hint" class="submit-hint">选择资料，并确认处理授权后即可提交。</p>
+          </div>
+        </form>
+        <aside class="guide-card">
+          <div class="guide-kicker">不止是摘要</div><h3>把学习需要的，<br>认真留在教材里。</h3>
+          <ol class="guide-list"><li><span class="guide-icon" aria-hidden="true">01</span><div><h4>读完整</h4><p>按约定范围整理概念、条件、推导、图表与原例题。</p></div></li><li><span class="guide-icon" aria-hidden="true">02</span><div><h4>真正作答</h4><p>原题与小问保持完整，选择、公式、表格和文字分别输入。</p></div></li><li><span class="guide-icon" aria-hidden="true">03</span><div><h4>检查后交付</h4><p>核对覆盖、答案来源与页面功能。有缺页或冲突会明确告知。</p></div></li></ol>
+          <div class="privacy-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v5c0 5-8 10-8 10S4 16 4 11V6zM8 12l3 3 5-6"/></svg><div><strong>资料有保留期限</strong><p id="retention-note">正在读取保留期限。提交后可在任务页面主动删除资料和成品。</p></div></div>
+        </aside>
+      </div>
+      <section id="job-panel" class="job-panel" hidden aria-labelledby="job-title" tabindex="-1">
+        <div class="job-top"><div><p class="eyebrow" id="job-kicker">转换进度</p><h2 id="job-title">正在读取任务</h2><p id="job-message" class="job-message" aria-live="polite"></p></div><span id="job-status" class="status-badge">读取中</span></div>
+        <div id="job-error" class="inline-error" role="alert" hidden></div>
+        <div class="job-columns"><div><ol id="progress-steps" class="progress-steps" aria-label="转换步骤"></ol><div id="job-checks" class="job-checks" hidden><h3>实际检查结果</h3><ul id="check-list"></ul></div></div><div class="job-detail"><h3>处理记录</h3><p class="field-note">仅显示服务实际报告的进展。较长教材会按章节处理，请耐心等待。</p><ol id="event-list" class="event-list"></ol><p id="no-events" class="subtle">等待服务报告进度。</p></div></div>
+        <div class="job-bottom"><div><p id="job-expiry" class="field-note"></p><p class="field-note">下载的 HTML 可离线使用。学习记录保存在使用它的浏览器里，请在教材内定期导出备份。</p></div><div class="job-actions"><button id="download-job" class="primary-button" type="button" hidden>下载学习 HTML <span aria-hidden="true">↓</span></button><button id="retry-job" class="secondary-button" type="button" hidden>重新尝试</button><button id="cancel-job" class="secondary-button" type="button" hidden>取消转换</button><button id="delete-job" class="danger-button" type="button">删除资料与成品</button><button id="new-job" class="text-button" type="button">准备另一份教材</button></div></div>
+      </section>
+    </section>
+    <section class="expectations wrap" aria-label="使用说明"><div><span>01 / 制作</span><p>篇幅与内容复杂度影响处理时间。超出服务限制或无法可靠识别时，会说明具体问题。</p></div><div><span>02 / 核对</span><p>AI 参考答案与原书答案分开标记。专业内容仍需结合原书及课程要求核对。</p></div><div><span>03 / 保留</span><p>把成品下载到自己的设备。服务到期清理后，不会删除你已经下载的文件。</p></div></section>
+  </main>
+  <footer class="site-footer wrap"><span class="footer-brand">书页</span><p>给知识一个可以反复打开的地方。</p><span>一本资料 · 一个离线 HTML</span></footer>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title"><h2 id="confirm-title">确认操作</h2><p id="confirm-message"></p><div class="dialog-actions"><button id="confirm-no" class="secondary-button" type="button">返回</button><button id="confirm-yes" class="danger-button" type="button">确认删除</button></div></dialog>
+</body>
+</html>

@@ -1,0 +1,1 @@
+{"source":"general-source.txt（独立于生成结果的原资料教学清单）","items":[{"id":"i1","sourceId":"s1","locator":"第1页/1.1","kind":"lesson","expectedParts":[]},{"id":"i2","sourceId":"s1","locator":"第1页/例1-1","kind":"example","expectedParts":["a"]},{"id":"i3","sourceId":"s1","locator":"第1页/练习1","kind":"exercise","expectedParts":["a","b"]}]}

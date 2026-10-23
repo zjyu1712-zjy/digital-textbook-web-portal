@@ -1,0 +1,104 @@
+{
+  "issue": "正常单页导航误报并发修改并生成分叉草稿",
+  "rootCause": "save() 在异步保存前把旧 rev 放入 memoryDrafts，保存后的新 rev 未同步，章节/题目往返再次读取缓存时触发 DraftConflictError。",
+  "red": {
+    "report": "evidence/quality/red/runtime-report.json",
+    "assertion": "no concurrent page => forkOf drafts count must be zero",
+    "observed": 3,
+    "expected": 0
+  },
+  "minimalFix": "仅在网站专用 app.js 成功保存后，把含新 rev 的草稿同步至 memoryDrafts；真实并发冲突分叉逻辑保留。",
+  "upstreamAssetSHA256": "0c1509be9618e264068d16b4230b69150ac79ca45aefdcc2e25bd77bb06603a8",
+  "webAssetSHA256": "966b35cfa3b0946d3ac004a272d5c5dece19dbd5214eb1480decb7172625a787",
+  "changedFiles": [
+    "skill/assets/app.js",
+    "skill/RELEASE.json",
+    "tests/runtime-check.cjs"
+  ],
+  "upstreamAndInstalledUnmodified": true,
+  "regressions": {
+    "general": {
+      "status": "pass",
+      "pass": 17,
+      "notApplicable": 1,
+      "report": "evidence/quality/green/general-checks/browser-wuie_9a6/runtime-report.json",
+      "scope": {
+        "chapters": [
+          "ch1"
+        ],
+        "questions": [
+          "ex1",
+          "q1"
+        ],
+        "exercisedQuestions": [
+          "q1"
+        ],
+        "fieldKinds": [
+          "text"
+        ],
+        "exams": []
+      },
+      "htmlSHA256": "e7d8493e24e8155c191c4209b2f211bf7e6c4e99697e8110683cbb9c1e2326fe"
+    },
+    "components": {
+      "status": "pass",
+      "pass": 17,
+      "notApplicable": 1,
+      "report": "evidence/quality/green/components-checks/browser-qigandbv/runtime-report.json",
+      "scope": {
+        "chapters": [
+          "ch1",
+          "ch2"
+        ],
+        "questions": [
+          "ex1",
+          "q1",
+          "components"
+        ],
+        "exercisedQuestions": [
+          "components",
+          "q1"
+        ],
+        "fieldKinds": [
+          "choice",
+          "fill",
+          "formula",
+          "journal",
+          "matrix",
+          "multiple",
+          "number",
+          "table",
+          "text"
+        ],
+        "exams": []
+      },
+      "htmlSHA256": "d66e79eb1c35747322da217f9f4f5c581135fd6908df61fe65448bbf6b1c6398"
+    },
+    "no-questions": {
+      "status": "pass",
+      "pass": 11,
+      "notApplicable": 7,
+      "report": "evidence/quality/green/no-questions-checks/browser-z9ub7u5n/runtime-report.json",
+      "scope": {
+        "chapters": [
+          "ch1"
+        ],
+        "questions": [],
+        "exercisedQuestions": [],
+        "fieldKinds": [],
+        "exams": []
+      },
+      "htmlSHA256": "bc7c19ab92f886cb083821cd4fc278fd2b74f34f5dfbe5a8fbbd8c8442ff3df4"
+    }
+  },
+  "unitTests": {
+    "count": 14,
+    "status": "pass",
+    "command": "PYTHONPATH=. python3 -O -m unittest discover -s tests -p test_quality.py -v"
+  },
+  "limits": [
+    "上述样本均为 Skill 已有自编测试材料或其明确节选，未冒充真实新教材转换。",
+    "真实模型 API、部署后的浏览器与公网环境仍需上线配置后检查。",
+    "此修复只应用网页专用 Skill 副本，不声称已更新原开发目录或本机安装技能。"
+  ]
+}

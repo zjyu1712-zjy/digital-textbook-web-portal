@@ -1,0 +1,14 @@
+.env
+.env.*
+.git
+data
+node_modules
+.venv
+__pycache__
+**/__pycache__
+**/*.pyc
+evidence
+docs
+tests/test_*.py
+tests/serve_ui_fixture.py
+tests/portal.e2e.cjs

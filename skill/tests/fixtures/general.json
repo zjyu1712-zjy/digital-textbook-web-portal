@@ -1,0 +1,13 @@
+{
+ "schemaVersion":1,"id":"synthetic-specimen-records","version":"1","title":"标本记录入门 · 测试节选","edition":"自编测试版",
+ "scope":{"description":"仅含所给第1页的1节、1例题、1练习；不代表任意教材都已验证。","completeness":"excerpt","excluded":[]},
+ "organization":{"mode":"textbook","primarySourceIds":["s1"],"reason":"仅提供一本教材节选"},"disciplines":["general"],
+ "sources":[{"id":"s1","title":"标本记录入门测试节选","role":"textbook","identity":"本次自编，无私人资料","sha256":"TEST-FIXTURE","locator":"第1页"}],
+ "chapters":[{"id":"ch1","title":"第一章 标本标签与记录","sections":[{"id":"k1","title":"1.1 标签","sourceRefs":[{"sourceId":"s1","locator":"第1页/1.1"}],"blocks":[{"type":"paragraph","text":"标签至少记录样本代号、采集日期和观察者。代号用于连接实物与记录，日期区分不同采集批次，观察者便于核查。未记录的信息应标为缺失，不能根据相邻记录猜测。若标签与登记表冲突，应保留两份记录并回查采集笔记；在解决前，不把它们合并为一个确定值。"}]}]}],
+ "questions":[
+ {"id":"ex1","number":"例1-1","title":"代号冲突","kind":"text","origin":"textbook_example","version":"1","chapterIds":["ch1"],"knowledgeIds":["k1"],"sourceRefs":[{"sourceId":"s1","locator":"第1页/例1-1"}],"prompt":[{"type":"paragraph","text":"实物标签为 S01，登记表为 S10，其他信息相同。说明处理办法。"}],"parts":[{"id":"a","label":"处理办法","fields":[{"id":"response","kind":"text","label":"你的说明"}]}],"answer":{"version":"1","provenance":"original","status":"ready","blocks":[{"type":"paragraph","text":"保留两种代号，标记冲突，回查采集笔记；仅凭其他信息相同不能确定属于同一个样本。"}],"sourceRefs":[{"sourceId":"s1","locator":"第1页/原资料解答"}]},"grading":{"kind":"self"}},
+ {"id":"q1","number":"练习1","title":"记录字段与缺项","kind":"text","origin":"textbook_exercise","version":"1","chapterIds":["ch1"],"knowledgeIds":["k1"],"sourceRefs":[{"sourceId":"s1","locator":"第1页/练习1"}],"prompt":[{"type":"paragraph","text":"（1）写出标签的三个必要字段。（2）若缺少日期，能否从相邻样本推断？说明理由。"}],"parts":[{"id":"a","label":"（1）必要字段","fields":[{"id":"fields","kind":"text","label":"写出三个字段"}]},{"id":"b","label":"（2）日期缺失","fields":[{"id":"reason","kind":"text","label":"结论与理由"}]}],"answer":{"version":"ai-1","provenance":"ai","status":"ready","blocks":[{"type":"paragraph","text":"（1）样本代号、采集日期、观察者。（2）不能。相邻记录不证明采集日期相同，应明确标注缺失并核查原始笔记。"}],"sourceRefs":[]},"grading":{"kind":"self"}}
+ ],"exams":[],"issues":[],"migrations":{"questionAliases":{}},
+ "coverage":[{"sourceItemId":"i1","targets":["k1"],"status":"covered"},{"sourceItemId":"i2","targets":["ex1"],"status":"covered"},{"sourceItemId":"i3","targets":["q1"],"status":"covered"}],
+ "semanticReviews":[{"targetIds":["k1","ex1","q1"],"reviewer":"author-fixture-review","method":"逐句对照测试源；检查所有条件及两小问；AI参考依据原材料，不补未知事实","result":"pass","evidence":"tests/fixtures/general-source.txt 第1页全文"}]
+}

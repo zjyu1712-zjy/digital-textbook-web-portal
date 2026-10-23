@@ -1,0 +1,16 @@
+{
+  "name": "digital-textbook-html",
+  "version": "1.0.0-web.1",
+  "upstreamVersion": "1.0.0",
+  "distribution": "web-portal",
+  "webPatches": [{
+    "id": "committed-draft-cache-revision",
+    "file": "assets/app.js",
+    "reason": "保存成功后同步导航缓存中的草稿版本，避免同一页面往返误报另一页面修改。",
+    "evidence": "../evidence/quality/repair-record.json"
+  }],
+  "contentSchemaVersion": 1,
+  "backupFormatVersion": 1,
+  "personalPreferencesVersion": 1,
+  "privateCourseMaterialsIncluded": false
+}
