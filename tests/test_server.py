@@ -28,9 +28,7 @@ class PortalTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         root = Path(self.tmp.name)
-        skill = root / "skill"
-        skill.mkdir()
-        (skill / "SKILL.md").write_text("test")
+        skill = Path(__file__).resolve().parents[1] / "skill"
         self.config = Config(data_dir=root / "private", skill_dir=skill, api_key="test-secret", model="test-model", public_origin="http://127.0.0.1:8000")
         self.apps = []
         self.app = self.make_app()
@@ -87,7 +85,23 @@ class PortalTests(unittest.TestCase):
     def test_config_does_not_disclose_secrets(self):
         result = self.call()["body"]
         self.assertTrue(result["ready"])
+        self.assertEqual(result["skillVersion"], self.config.skill_version)
         self.assertNotIn(self.config.api_key, json.dumps(result))
+
+    def test_upload_persists_explicit_usage_and_purpose(self):
+        payload = self.payload()
+        payload['files'][0].update(usage='primary', purpose='教材主线，完整呈现定义')
+        response = self.call('/api/jobs', 'POST', payload)
+        self.assertEqual(response['status'], 202)
+        manifest = json.loads(self.app.store.get(response['body']['id'])['manifest'])
+        self.assertEqual(manifest['files'][0]['usage'], 'primary')
+        self.assertEqual(manifest['files'][0]['purpose'], '教材主线，完整呈现定义')
+
+    def test_conflicting_primary_and_usage_rejected_before_saving(self):
+        payload = self.payload()
+        payload['files'][0]['usage'] = 'reference'
+        self.assertEqual(self.call('/api/jobs', 'POST', payload)['status'], 400)
+        self.assertEqual(list(self.app.jobs_dir.iterdir()), [])
 
     def test_consent_provider_matches_configured_data_destination(self):
         self.assertEqual(self.call()["body"]["provider"], "OpenAI")

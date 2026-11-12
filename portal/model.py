@@ -7,6 +7,8 @@ import time
 import urllib.error
 import urllib.request
 
+from .skill_sync import skill_metadata
+
 
 class ModelProblem(ValueError):
     pass
@@ -34,6 +36,7 @@ class ResponsesModel:
         self.config, self.root, self.cancelled = config, Path(job_dir), cancelled
         self.cache = self.root / 'model-cache'
         self.cache.mkdir(exist_ok=True)
+        self.skill_identity = skill_metadata(config.skill_dir)['fingerprint']
 
     def ask(self, stage, instructions, data, images=()):
         if self.cancelled():
@@ -52,7 +55,7 @@ class ResponsesModel:
         for image in images:
             if not image.is_relative_to(self.root.resolve()):
                 raise ModelProblem('核查图片不属于本任务。')
-        fingerprint = {'model': self.config.model, 'stage': stage, 'instructions': instructions,
+        fingerprint = {'conversionRevision': 'schema-v2-contract-review-1', 'skillFingerprint': self.skill_identity, 'model': self.config.model, 'stage': stage, 'instructions': instructions,
                        'data': data, 'images': [hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in images]}
         # OpenAI keeps its legacy namespace; Bailian never reads or writes it.
         if bailian:

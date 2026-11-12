@@ -1,0 +1,38 @@
+name: Pinned skill consistency
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-skill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          path: portal
+          persist-credentials: false
+      - name: Validate local lock and read its fixed revision
+        id: pin
+        run: |
+          python3 portal/scripts/sync_skill.py
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          value = json.loads(Path('portal/skill-lock.json').read_text())['upstreamRef']
+          assert re.fullmatch(r'[0-9a-f]{40}|v\d+\.\d+\.\d+', value)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('ref=' + value + '\n')
+          PY
+      - uses: actions/checkout@v7.0.1
+        with:
+          repository: zjyu1712-zjy/digital-textbook-html
+          ref: ${{ steps.pin.outputs.ref }}
+          path: upstream
+          persist-credentials: false
+      - name: Compare every file with the pinned upstream version
+        run: python3 portal/scripts/sync_skill.py --check-source upstream

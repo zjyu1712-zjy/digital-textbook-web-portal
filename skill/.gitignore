@@ -1,0 +1,14 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+node_modules/
+.venv/
+venv/
+.env
+.env.*
+work/
+inputs/
+outputs/
+reports/
+*-report.json
+*.log

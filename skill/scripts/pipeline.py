@@ -2,14 +2,17 @@
 from pathlib import Path
 import argparse,base64,copy,hashlib,html,json,mimetypes,os,re,shutil,subprocess,sys
 from html.parser import HTMLParser
+from task_contract import classify,validate_contract
+from review_audit import validate_learning_map,review_fingerprint,audit_reviews
+from grading import validate_grading
 SKILL=Path(__file__).resolve().parents[1]
 MODES={'textbook','slides','outline','combined'}
 DISCIPLINES={'math','theory','models','accounting','statistics','general'}
 FIELDS={'text','fill','number','choice','multiple','formula','matrix','journal','table'}
 BLOCKS={'paragraph','heading','list','math','matrix','table','image','details','diagram'}
 ORIGINS={'textbook_example','textbook_exercise','teacher_exercise','exam','auxiliary_exercise','ai_supplement'}
-def read(p):return json.loads(Path(p).read_text())
-def write(p,d):Path(p).parent.mkdir(parents=True,exist_ok=True);Path(p).write_text(json.dumps(d,ensure_ascii=False,indent=2))
+def read(p):return json.loads(Path(p).read_text(encoding="utf-8"))
+def write(p,d):Path(p).parent.mkdir(parents=True,exist_ok=True);Path(p).write_text(json.dumps(d,ensure_ascii=False,indent=2),encoding="utf-8")
 def sha(p):
  h=hashlib.sha256()
  with Path(p).open('rb') as f:
@@ -38,7 +41,7 @@ def validate(d,inv):
   if required and not rs:e.append(label+': missing source references')
   for r in rs or []:
    if r.get('sourceId') not in sources or not r.get('locator'):e.append(label+': invalid source locator')
- if d.get('schemaVersion')!=1:e.append('unsupported schemaVersion')
+ if d.get('schemaVersion')not in (1,2):e.append('unsupported schemaVersion')
  ident(d,'book')
  if not all(d.get(k)for k in ['title','edition','version']):e.append('book metadata incomplete')
  for s in d.get('sources',[]):
@@ -81,12 +84,7 @@ def validate(d,inv):
   if a.get('status')not in ('ready','pending','missing'):e.append('answer status required')
   if a.get('status')=='ready'and not substantive(a.get('blocks',[])):e.append('ready answer lacks solution')
   refs(a.get('sourceRefs',[]),'answer '+str(q.get('id')),a.get('provenance')in ('original','teacher'))
-  g=q.get('grading',{'kind':'self'})
-  if g.get('kind')not in ('self','choice','numeric'):e.append('unsupported grading; use self assessment')
-  if g.get('kind')!='self':
-   if a.get('status')!='ready'or not g.get('rules')or not g.get('rationale'):e.append('automatic judgment needs reliable rules')
-   for r in g.get('rules',[]):
-    if r.get('fieldId')not in fs:e.append('grading field missing')
+  e.extend(validate_grading(q))
  for b in all_blocks(d):
   t=b.get('type')
   if t not in BLOCKS:e.append('unsupported block '+str(t))
@@ -95,6 +93,7 @@ def validate(d,inv):
    if not isinstance(b['runs'],list)or any(r.get('type')not in ('text','math')or not r.get('text'if r.get('type')=='text'else'tex')for r in b['runs']):e.append('invalid inline paragraph')
   if t=='matrix'and(not b.get('rows')or len({len(r)for r in b['rows']})!=1):e.append('ragged matrix')
   if t=='image'and(not b.get('alt')or not b.get('path')or re.match(r'^(?:\w+:|//)',b.get('path',''))):e.append('image requires local path and alt')
+  if t=='image'and d.get('schemaVersion')==2 and not re.fullmatch(r'[0-9a-f]{64}',str(b.get('sha256',''))):e.append('v2 image requires actual sha256 digest')
   if t=='table'and(not b.get('columns')or any(len(r)!=len(b['columns'])for r in b.get('rows',[]))):e.append('table column count mismatch')
  for ex in d.get('exams',[]):
   ident(ex,'exam')
@@ -119,18 +118,13 @@ def validate(d,inv):
   if not set(item.get('expectedParts',[]))<=actual:e.append(str(k)+': omitted subquestions')
  if not itemids:e.append('independent source inventory missing')
  if set(cover)-itemids:e.append('ungrounded inventory entries')
- return e
-def classify(sources,evidence):
- primary=[s for s in sources if s.get('primary')];roles={s.get('role')for s in primary or sources};mode='textbook'
- if len(primary)>1 and len(roles)>1:mode='combined'
- elif 'teacher_slides'in roles:mode='slides'
- elif 'outline'in roles:mode='outline'
- text=' '.join(evidence);modes=[]
- for key,terms in [('math',['矩阵','定理','行列式','证明']),('theory',['方法论','原理','材料分析']),('models',['均衡','曲线','坐标']),('accounting',['借贷','分录','账户','试算']),('statistics',['统计量','置信','概率分布','抽样分布','样本均值','方差','假设检验'])]:
-  if any(t in text for t in terms):modes.append(key)
- return {'materialMode':mode,'disciplines':modes or ['general'],'status':'建议；须核对真实内容与用户主次要求'}
+ if d.get('schemaVersion')==2:
+  e.extend(validate_contract(d));e.extend(validate_learning_map(d,inv));e.extend(audit_reviews(d,inv)['errors'])
+ elif any(r.get('binding')for r in d.get('semanticReviews',[])if isinstance(r,dict)):
+  e.extend(audit_reviews(d,inv)['errors'])
+ return list(dict.fromkeys(e))
 def checkpoint(d):
- shared={k:d.get(k)for k in ['organization','disciplines','sources','edition','preferencesVersion']}
+ shared={k:d.get(k)for k in ['organization','taskContract','disciplines','sources','edition','preferencesVersion']}
  return {c['id']:hashlib.sha256(stable({'shared':shared,'chapter':c,'questions':[q for q in d.get('questions',[])if c['id']in q['chapterIds']]}).encode()).hexdigest()for c in d['chapters']}
 def changed(a,b):return sorted(k for k in a.keys()|b.keys()if a.get(k)!=b.get(k))
 def math_expressions(d):
@@ -149,20 +143,33 @@ def inspect_html(path):
     v=a.get(k,'')
     if v and not v.startswith(('data:','#')):self.errors.append('external resource '+v[:100])
    if any(k.startswith('on')for k in a):self.errors.append('inline event handler')
- p=Check();s=Path(path).read_text();p.feed(s)
+ p=Check();s=Path(path).read_text(encoding="utf-8");p.feed(s)
  for u in re.findall(r'url\(([^)]+)\)',s):
   if not u.strip('"\' ').startswith(('data:','#')):p.errors.append('external CSS URL '+u[:80])
  return p.errors
+def embedded_math_css():
+ css=(SKILL/'assets/vendor/katex.min.css').read_text(encoding='utf-8')
+ def font_sources(match):
+  # All supported browsers read WOFF2; keep one bundled source per face.
+  urls=re.findall(r'url\(([^)]+)\)',match.group(1))
+  names=[Path(url.strip('"\' ')).name for url in urls]
+  names=[name for name in names if name.endswith('.woff2')]
+  if len(names)!=1:raise ValueError('font face requires exactly one bundled WOFF2 source')
+  p=SKILL/'assets/vendor'/names[0]
+  if not p.is_file():raise ValueError('missing font '+names[0])
+  encoded=base64.b64encode(p.read_bytes()).decode()
+  return 'src:url(data:font/woff2;base64,'+encoded+') format("woff2")'
+ return re.sub(r'src:([^;}]+)',font_sources,css)
 def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None):
  d=copy.deepcopy(data);errors=validate(d,inventory)
  if errors and not allow_incomplete:raise ValueError('\n'.join(errors))
- d['validation']={'structuralErrors':errors,'sourceItems':len(inventory['items']),'counts':{k:sum(q['origin']==k for q in d['questions'])for k in sorted(ORIGINS)},'note':'结构计数不证明学术正确；语义核查范围单独记录。'};d['sourceInventory']=inventory
+ d['validation']={'structuralErrors':errors,'sourceItems':len(inventory['items']),'counts':{k:sum(q['origin']==k for q in d['questions'])for k in sorted(ORIGINS)},'assurance':audit_reviews(d,inventory),'note':'结构和审校时效验证不证明学术正确；语义核查仍须实际对读。'};d['sourceInventory']=inventory
  if errors:d['scope']['completeness']='incomplete'
  expressions=list(math_expressions(d))
  if expressions:
   n=node or os.environ.get('NODE_BINARY')or shutil.which('node')
   if not n:raise ValueError('需Node验证公式；未完成公式核验，停止交付')
-  r=subprocess.run([n,str(SKILL/'scripts/check_math.cjs'),str(SKILL/'assets/vendor/katex.min.js')],input=json.dumps(expressions),text=True,capture_output=True)
+  r=subprocess.run([n,str(SKILL/'scripts/check_math.cjs'),str(SKILL/'assets/vendor/katex.min.js')],input=json.dumps(expressions),text=True,encoding="utf-8",capture_output=True)
   if r.returncode:raise ValueError('formula validation failed: '+r.stderr)
  root=Path(asset_root).resolve()
  for b in all_blocks(d):
@@ -171,18 +178,14 @@ def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None):
    if not p.is_relative_to(root):raise ValueError('asset outside approved input root')
    mime=mimetypes.guess_type(str(p))[0]
    if mime not in ('image/png','image/jpeg','image/webp','image/gif'):raise ValueError('image must be local raster; use structured diagram for SVG')
+   if d.get('schemaVersion')==2 and sha(p)!=b.get('sha256'):raise ValueError('image content changed: update image sha256 and re-review '+str(b['path']))
    b['data']='data:'+mime+';base64,'+base64.b64encode(p.read_bytes()).decode()
- css=(SKILL/'assets/vendor/katex.min.css').read_text()
- def font(m):
-  name=re.sub(r'\.(woff|ttf)$','.woff2',Path(m.group(1).strip('"\'')).name);p=SKILL/'assets/vendor'/name
-  if not p.is_file():raise ValueError('missing font '+name)
-  return 'url(data:font/woff2;base64,'+base64.b64encode(p.read_bytes()).decode()+')'
- css=re.sub(r'url\(([^)]+)\)',font,css);css=re.sub(r'format\("(?:woff|truetype)"\)','format("woff2")',css)
+ css=embedded_math_css()
  payload=json.dumps(d,ensure_ascii=False,separators=(',',':')).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
- values={'TITLE':html.escape(d['title']),'CSS':css+'\n'+(SKILL/'assets/style.css').read_text(),'DATA':payload,'JS':'\n'.join((SKILL/'assets'/f).read_text()for f in ['vendor/katex.min.js','storage.js','app.js'])}
- shell=(SKILL/'assets/shell.html').read_text()
+ values={'TITLE':html.escape(d['title']),'CSS':css+'\n'+(SKILL/'assets/style.css').read_text(encoding="utf-8"),'DATA':payload,'JS':'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['vendor/katex.min.js','storage.js','grading.js','app.js'])}
+ shell=(SKILL/'assets/shell.html').read_text(encoding="utf-8")
  for k,v in values.items():shell=shell.replace('@@'+k+'@@',v)
- dest=Path(dest);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(shell)
+ dest=Path(dest);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(shell,encoding="utf-8")
  issues=inspect_html(dest)
  if issues:raise ValueError('packaging validation: '+str(issues))
  return d['validation']
@@ -195,9 +198,14 @@ def inventory_files(paths):
   rows.append({'path':str(p),'bytes':p.stat().st_size,'sha256':sha(p),'role':'unclassified','identity':'pending content inspection'})
  return rows
 def main():
+ for stream in (sys.stdout,sys.stderr):
+  if hasattr(stream,'reconfigure'):stream.reconfigure(encoding='utf-8')
  ap=argparse.ArgumentParser(description=__doc__);sp=ap.add_subparsers(dest='cmd',required=True)
  a=sp.add_parser('inventory');a.add_argument('files',nargs='+');a.add_argument('--out',required=True)
- a=sp.add_parser('classify');a.add_argument('input');a.add_argument('--out',required=True)
+ a=sp.add_parser('classify');a.add_argument('input');a.add_argument('--chapter');a.add_argument('--out',required=True)
+ for cmd in ('review-state','review-binding'):
+  a=sp.add_parser(cmd);a.add_argument('course');a.add_argument('--inventory',required=True);a.add_argument('--out',required=True)
+  if cmd=='review-binding':a.add_argument('--targets',nargs='+',required=True)
  for cmd in ('validate','build'):
   a=sp.add_parser(cmd);a.add_argument('course');a.add_argument('--inventory',required=True);a.add_argument('--out',required=True)
   if cmd=='build':a.add_argument('--assets',default='.');a.add_argument('--allow-incomplete',action='store_true');a.add_argument('--node')
@@ -207,9 +215,14 @@ def main():
  try:
   if args.cmd=='inventory':write(args.out,inventory_files(args.files))
   elif args.cmd=='classify':
-   d=read(args.input);write(args.out,classify(d['sources'],d.get('evidence',[])))
+   d=read(args.input);write(args.out,classify(d['sources'],d.get('evidence',[]),organization=d.get('organization'),contract=d.get('taskContract'),chapter_id=args.chapter))
+  elif args.cmd=='review-state':
+   report=audit_reviews(read(args.course),read(args.inventory));write(args.out,report);print(json.dumps({'status':report['status']},ensure_ascii=False));return 1 if report.get('errors')else(0 if report['status']=='pass'else(2 if report['status']=='legacy-unverified'else 1))
+  elif args.cmd=='review-binding':
+   fingerprint=review_fingerprint(read(args.course),read(args.inventory),args.targets)
+   write(args.out,{'targetIds':args.targets,'binding':{'version':1,'fingerprint':fingerprint},'note':'仅计算当前内容指纹，不创建审查结论；实际核查完成后才可将绑定写入对应审校记录。'})
   elif args.cmd=='validate':
-   e=validate(read(args.course),read(args.inventory));write(args.out,{'errors':e,'structuralPass':not e,'semanticMeaning':'脚本只验证审查记录存在，不能判断事实正确'});print(json.dumps({'errors':e},ensure_ascii=False));return bool(e)
+   d=read(args.course);inv=read(args.inventory);e=validate(d,inv);write(args.out,{'errors':e,'structuralPass':not e,'assurance':audit_reviews(d,inv),'semanticMeaning':'结构及审校时效通过不等于学术正确；旧v1自由文本记录不证明本轮审校完成'});print(json.dumps({'errors':e},ensure_ascii=False));return bool(e)
   elif args.cmd=='build':print(json.dumps(build(read(args.course),read(args.inventory),args.out,args.assets,args.allow_incomplete,args.node),ensure_ascii=False))
   elif args.cmd=='inspect':
    e=inspect_html(args.html);print(json.dumps(e,ensure_ascii=False));return bool(e)

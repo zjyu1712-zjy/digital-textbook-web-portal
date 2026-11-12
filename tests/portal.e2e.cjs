@@ -108,15 +108,30 @@ async function finish(page) {
   assert(await page.locator('#submit-job').isDisabled());
   await selectFixture(page, '<img src=x onerror=window.__portalInjected=1>.txt');
   assert.equal(await page.locator('#file-primary-0').isChecked(),true);
+  assert.match(await page.locator('#skill-version').innerText(),/转换组件 \d+\.\d+\.\d+/);
+  assert.equal(await page.locator('#file-usage-0').isDisabled(),true);
+  assert.equal(await page.locator('#file-usage-0').inputValue(),'primary');
   await page.locator('#file-role-0').selectOption('teacher_slides');
   assert.equal(await page.locator('#file-role-0').inputValue(),'teacher_slides');
   await page.locator('#file-role-0').selectOption('textbook');
   await page.locator('#file-primary-0').uncheck();
+  assert.equal(await page.locator('#file-usage-0').isEnabled(),true);
+  await page.locator('#file-usage-0').selectOption('reference');
+  await page.locator('#file-purpose-0').fill('按教材讲解，案例融入对应知识点');
   assert.match(await page.locator('#file-error').innerText(),/至少标记一份主资料/);
   await page.locator('#file-primary-0').check();
+  assert.equal(await page.locator('#file-usage-0').inputValue(),'primary');
   await page.locator('#book-title').fill('<img src=x onerror=window.__portalInjected=1> 自写教材');
   await page.locator('#scope').fill('测试范围：只验证对应小样本；未调用真实模型。');
   await page.locator('#material-mode').selectOption('textbook');
+  for(const width of [1440,390]) {
+    await page.setViewportSize({width,height:1000});
+    await noOverflow(page, `资料用途输入区 ${width}px 无横向溢出`);
+    const name=`material-purposes-${width}.png`;
+    await page.locator('.file-row').screenshot({path:path.join(output,name),animations:'disabled'});
+    report.screenshots.push(name);
+  }
+  await page.setViewportSize({width:1440,height:1000});
   await page.locator('#access-code').fill('incorrect-code');
   assert(await page.locator('#submit-job').isDisabled());
   await page.locator('#consent').check();
@@ -132,6 +147,8 @@ async function finish(page) {
   const sent=(await sentPromise).postDataJSON();
   assert.equal(sent.files[0].role,'textbook');
   assert.equal(sent.files[0].primary,true);
+  assert.equal(sent.files[0].usage,'primary');
+  assert.equal(sent.files[0].purpose,'按教材讲解，案例融入对应知识点');
   assert.equal(sent.mode,'textbook');
   assert.equal(sent.consent,true);
   assert.equal(sent.consentProvider,'bailian');

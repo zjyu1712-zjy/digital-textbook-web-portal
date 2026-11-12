@@ -52,6 +52,8 @@ python3 -m portal --port 8000
 
 ## 转换与检查
 
+- 上传时可为辅料选择补充解释、例证、题目解析或仅对照，并填写具体要求；角色名称不会自动决定主次。计划阶段记录逐份资料用途与章节重点，生成阶段记录真正融入讲解、总结与重点的位置。
+- 新任务生成 schema v2；独立请求实际审查通过后，才把审查记录绑定到最终题目、答案、来源、用途和融合内容。审查之后的知识内容变化不能靠重新计算绑定掩盖。
 - 直接加载随包 `skill/` 的质量要求、个人学习偏好、资料模式、学科细则和数据契约，调用原 Python 构建器、公式检查器与学习组件。没有为五门课重写五套网页。
 - PDF 逐页提取文字并渲染原页供模型核查。扫描 PDF 可走视觉识别；模糊、损坏、缺页或无法确认的资料停为待核对。TXT/MD 必须 UTF-8。简单 DOCX/PPTX 可读取；有图片、公式、图表、表格、备注、脚注或复杂绘图时，明确要求从原应用导出**包含相关内容**的 PDF，不能静默丢弃。PPT 备注应使用备注页导出。
 - 在写课程之前独立生成逐页来源清单；按真实章节组织，长章按小节处理。讲解与答案由模型构建，另一次请求对照原页做语义核查，结构计数不冒充学术正确。原答案/教师答案/未知参考/AI答案分别标记。
@@ -77,7 +79,7 @@ node tests/runtime-check.cjs /absolute/path/to/generated.html /absolute/path/to/
 
 网页端到端测试说明见 `tests/portal.e2e.cjs`，使用固定自编来源、依赖注入和临时隔离目录，明确不算真实模型联调。`tests/serve_ui_fixture.py` 不会打进生产容器。
 
-用户偏好位于 `skill/references/preferences.md`；质量策略位于 `skill/references/quality.md`，页面样式位于 `static/`，成品样式位于 `skill/assets/style.css`。调整偏好不要修改记录存储或稳定 ID。网页副本包含草稿缓存修复 `1.0.0-web.1`，来源与失败复现见 `evidence/quality/repair-record.json`。原始课程目录、原 Skill 与安装版不改动。
+用户偏好位于 `skill/references/preferences.md`；质量策略位于 `skill/references/quality.md`，页面样式位于 `static/`，成品样式位于 `skill/assets/style.css`。调整偏好不要修改记录存储或稳定 ID。网页副本现在由主技能的固定版本生成，版本与全部文件摘要记录在 `skill-lock.json`；勿直接修改 `skill/`。旧网页补丁记录保留在 `evidence/quality/repair-record.json`，对应修复已包含在新版公共组件。
 
 `ACCEPTANCE.md` 记录开发阶段的验收范围，`docs/publication-check.md` 记录本公开副本的复测。原始浏览器运行目录、截图和完整日志保留在本地开发工作区，未随仓库发布；修复摘要中的报告路径仅用于追溯，公开仓库提供可重新运行的测试代码。`.env`、任务数据库、上传教材、用户作答、依赖缓存均不属于发布内容。
 
@@ -86,3 +88,22 @@ node tests/runtime-check.cjs /absolute/path/to/generated.html /absolute/path/to/
 百炼 API 实现依据：[首次调用与北京业务空间](https://help.aliyun.com/zh/model-studio/first-api-call-to-qwen)、[兼容接口](https://help.aliyun.com/zh/model-studio/qwen-api-via-openai-chat-completions)、[视觉输入](https://help.aliyun.com/zh/model-studio/vision/)、[JSON 模式](https://help.aliyun.com/zh/model-studio/qwen-structured-output)。
 
 OpenAI API 实现依据：[Responses JSON 模式](https://developers.openai.com/api/docs/guides/structured-outputs#json-mode)、[视觉输入](https://developers.openai.com/api/docs/guides/images-vision#analyze-images)、[数据控制](https://developers.openai.com/api/docs/guides/your-data)。
+
+
+## 固定技能版本与升级
+
+页面底部显示当前实际技能版本。`skill/` 是受管理的上游副本；服务就绪检查、部署打包及容器构建均核对 `skill-lock.json`，有文件漂移就停止，而不是继续使用未知组件。
+
+先取得经过核对的固定上游版本，在门户目录执行：
+
+```sh
+python3 scripts/sync_skill.py --source /absolute/path/digital-textbook-html --upstream-ref v1.2.1
+python3 scripts/sync_skill.py
+python3 scripts/sync_skill.py --check-source /absolute/path/digital-textbook-html
+```
+
+同步工具不联网、不追随最新主分支；只复制 `PACKAGE_FILES.json` 中列出的文件。目标有清单外文件时会停下，供维护者核对和备份。正式更新宜将 `--upstream-ref` 固定到完整提交摘要。GitHub 的 `Pinned skill consistency` 检查会取出锁定的上游快照，逐文件比较，不只相信本仓库自写的摘要。
+
+升级先备份部署数据并停止正在处理的工作，再更新工程及技能。已下载 HTML 和学习备份不会因升级网站而被重写；服务端旧成品仍保留原版本记录。重试未完成旧任务时重新走 v2 流程，模型缓存以转换修订号和实际技能摘要隔离，旧 v1 缓存不会被当作当前已审内容，调用预算继续累计。题目和书的稳定标识算法保持兼容。界面用途说明会进入新任务；旧任务缺少用途说明时仍保留原主资料选择，辅料按学习补充处理，不能自动降为仅存档。
+
+本次同步验收使用合成资料、显式测试模型替身及实际浏览器；不等于付费模型已完成真实教材转换。Windows 实机、目标服务器和公网部署仍按各自实际验收记录判断。

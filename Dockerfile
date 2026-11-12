@@ -18,8 +18,10 @@ RUN pip install --no-cache-dir -r requirements.txt \
 COPY portal ./portal
 COPY static ./static
 COPY skill ./skill
+COPY skill-lock.json ./skill-lock.json
 COPY tests/runtime-check.cjs ./tests/runtime-check.cjs
 COPY scripts ./scripts
+RUN python scripts/sync_skill.py
 RUN mkdir -p /data && chown -R textbook:textbook /data /app
 ENV PORTAL_DATA_DIR=/data PORTAL_SKILL_DIR=/app/skill BROWSER_EXECUTABLE=/usr/bin/chromium PLAYWRIGHT_MODULE=/app/node_modules/playwright
 USER textbook

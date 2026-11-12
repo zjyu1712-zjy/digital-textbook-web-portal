@@ -14,7 +14,7 @@ import zipfile
 from portal.config import Config
 from portal.extract import InputProblem, extract_sources
 from portal.model import ResponsesModel, ModelProblem, NoRedirect
-from portal.runner import Converter, stabilize_ids
+from portal.runner import Converter, stabilize_ids, load_pipeline, _unit_receipt, _verify_reviewed_units, QualityProblem
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -34,7 +34,10 @@ class FixtureModel:
         if stage == 'plan':
             return {'title':'测试用标本记录','edition':'自编测试版','mode':'textbook','reason':'仅一本节选','disciplines':['general'],
                     'scopeDescription':'仅所上传的自编测试节选','completeness':'excerpt','issues':[], 'excluded':[],
-                    'chapters':[{'id':'ch1','title':'第一章 标本标签','units':[{'id':'u01','itemIds':[i['id'] for i in data['inventory']]}]}]}
+                    'chapters':[{'id':'ch1','title':'第一章 标本标签','units':[{'id':'u01','itemIds':[i['id'] for i in data['inventory']]}]}],
+                    'taskContract': {'version':1,'goal':'理解标签字段与冲突核查','basis':'用户选择的主资料、用途和学习要求',
+                        'sourceUses':[{'sourceId':s['id'],'usage':'primary' if s['id'] in data['primarySourceIds'] else s.get('usage') or 'explanation','chapterIds':['ch1'],'purpose':s.get('purpose') or '按上传资料用途编排本章'} for s in data['sources']],
+                        'chapterPlans':[{'chapterId':'ch1','mode':'textbook','primarySourceIds':data['primarySourceIds'],'emphasis':'字段、缺失与冲突处理'}], 'pendingMaterials':[]}}
         if stage.startswith('unit:'):
             fixture = json.loads((ROOT/'skill/tests/fixtures/general.json').read_text())
             mapping = {'k1':'u01_k1','q1':'u01_q1','ex1':'u01_ex1'}
@@ -45,7 +48,11 @@ class FixtureModel:
             for row, item in zip(fixture['coverage'], data['inventory']):
                 row['sourceItemId'] = item['id']
                 row['targets'] = [mapping[x] for x in row['targets']]
-            return {'sections':fixture['chapters'][0]['sections'],'questions':fixture['questions'],'coverage':fixture['coverage'],'exams':[],'issues':[]}
+            return {'sections':fixture['chapters'][0]['sections'],'questions':fixture['questions'],'coverage':fixture['coverage'],
+                    'learningMap':[{'sourceItemId':row['sourceItemId'],'disposition':'integrated','explanationTargets':row['targets'],
+                                    'summaryTargets':[],'emphasisTargets':[], 'summaryNote':'本节讲解或原题已完整呈现，不重复抄写独立总结',
+                                    'emphasisNote':'按用户学习目标解释字段和冲突，不推测考纲','evidence':'合成来源条目进入对应讲解或完整原题'} for row in fixture['coverage']],
+                    'exams':[],'issues':[]}
         if stage.startswith('review:'):
             return {'pass':True,'reviewedItemIds':[i['id'] for i in data['context']['inventory']], 'evidence':'测试替身：核查三项来源，仅用于测试流程', 'issues':[]}
         if stage == 'global-review':
@@ -81,7 +88,10 @@ class ConversionTests(unittest.TestCase):
         self.assertNotIn('modelProvider', self.manifest)
         self.assertTrue((self.root/r['artifact']).is_file())
         course=json.loads((self.root/'course.json').read_text())
+        self.assertEqual(course['schemaVersion'],2)
         self.assertEqual(len(course['questions']),2)
+        self.assertEqual(load_pipeline(self.config.skill_dir).audit_reviews(course,json.loads((self.root/'source-inventory.json').read_text()))['status'],'pass')
+        self.assertTrue(all(r.get('binding') for r in course['semanticReviews']))
         self.assertEqual(course['scope']['completeness'],'excerpt')
         self.assertTrue(course['version'].startswith('v-'))
         self.assertTrue((self.root/'full-source-inventory.json').exists())

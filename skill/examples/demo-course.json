@@ -1,0 +1,969 @@
+{
+  "schemaVersion": 2,
+  "id": "digital-textbook-public-demo",
+  "version": "1.2.1",
+  "title": "记录与测量 · 交互教材示例",
+  "edition": "项目自编演示节选",
+  "scope": {
+    "description": "公开自编示例：两章，涵盖资料融合、文字/数值/单选/公式/表格作答、历史与备份。仅演示这些内容，不代表整本教材或全部学科验收。",
+    "completeness": "excerpt",
+    "excluded": []
+  },
+  "organization": {
+    "mode": "textbook",
+    "primarySourceIds": [
+      "s1",
+      "s4"
+    ],
+    "reason": "按自编教材学习，课堂案例补解释，旧模板仅对照；这是本示例安排，不是通用资料优先级。"
+  },
+  "disciplines": [
+    "general"
+  ],
+  "sources": [
+    {
+      "id": "s1",
+      "title": "标本记录入门测试节选",
+      "role": "textbook",
+      "identity": "本次自编，无私人资料",
+      "sha256": "2dc18a77faebcf6d12a873a478c7e9d1ee42359f10370baab3f576403cb6075d",
+      "locator": "第1页"
+    },
+    {
+      "id": "s2",
+      "title": "编号与采集批次课堂案例",
+      "role": "teacher_slides",
+      "identity": "自编合成课堂页",
+      "sha256": "6509128a3e003e76a6c84f2abc5938a13ccb188ed528edff054eb980b3b02fc1",
+      "locator": "fusion-supplement.txt 第1页"
+    },
+    {
+      "id": "s3",
+      "title": "旧版标签模板",
+      "role": "auxiliary",
+      "identity": "自编存档对照",
+      "sha256": "2cc4bea9689b44ff05eefafc52b482fd2063093ae745d49d3e4bf7ef5babc6fd",
+      "locator": "fusion-reference.txt 第1页"
+    },
+    {
+      "id": "s4",
+      "title": "测量记录与平均值",
+      "role": "textbook",
+      "identity": "本项目自编公开演示原文",
+      "sha256": "53cd0d8cf05a52fabd928bdf5f90f524175445159a5d95f512fb526cf764ed77",
+      "locator": "examples/measurement-source.txt"
+    }
+  ],
+  "chapters": [
+    {
+      "id": "ch1",
+      "title": "第一章 标本标签与记录",
+      "sections": [
+        {
+          "id": "k1",
+          "title": "1.1 标签",
+          "sourceRefs": [
+            {
+              "sourceId": "s1",
+              "locator": "第1页/1.1"
+            },
+            {
+              "sourceId": "s2",
+              "locator": "第1页/两件S01的课堂案例"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "标签至少记录样本代号、采集日期和观察者。代号用于连接实物与记录，日期区分不同采集批次，观察者便于核查。未记录的信息应标为缺失，不能根据相邻记录猜测。若标签与登记表冲突，应保留两份记录并回查采集笔记；在解决前，不把它们合并为一个确定值。"
+            },
+            {
+              "type": "paragraph",
+              "text": "课堂案例给出两个S01标签，但采集日期分别是3月1日和4月1日。相同编号可能属于不同记录范围或批次，因此要结合日期与原始记录辨识，不能直接认定是同一件物品。这也说明教材要求同时记录多个字段的原因：各字段共同提供核查线索；缺日期时标注缺失并回查，而非按排列次序猜测。"
+            }
+          ]
+        },
+        {
+          "id": "k-recap",
+          "title": "本节总结与重点",
+          "sourceRefs": [
+            {
+              "sourceId": "s1",
+              "locator": "第1页/1.1与练习1"
+            },
+            {
+              "sourceId": "s2",
+              "locator": "第1页/同编号案例"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "list",
+              "items": [
+                "标签同时记录样本代号、采集日期和观察者。",
+                "同编号不自动等于同一物品，需结合记录范围、批次和原始记录。",
+                "冲突保留双方，缺失明确标注；核查前不猜测或静默合并。"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "k-ref",
+          "title": "旧模板原文对照",
+          "sourceRefs": [
+            {
+              "sourceId": "s3",
+              "locator": "第1页/旧模板"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "自编旧版标签模板，存档对照页：样本代号____，采集日期（可留空）____。本页仅保存旧模板原貌。当前学习要求见教材，不能用此旧模板取消缺失标注与核查。"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ch2",
+      "title": "第二章 测量记录与平均值",
+      "sections": [
+        {
+          "id": "k-mean",
+          "title": "2.1 先核对记录，再计算",
+          "sourceRefs": [
+            {
+              "sourceId": "s4",
+              "locator": "2.1与示例记录"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "同类对象的测量记录，先确认单位和测量口径一致，再计算算术平均值。把有效观测值相加，除以有效观测次数。缺失值不能擅自当作0，也不能计入有效观测次数。"
+            },
+            {
+              "type": "math",
+              "tex": "\\bar{x}=\\frac{x_1+x_2+\\cdots+x_n}{n},\\quad n\\geq1",
+              "display": true
+            },
+            {
+              "type": "paragraph",
+              "text": "这里n是有效观测次数，为正整数。平均值保留原数据的单位。例：下面三次有效观测的总和为3000毫米，除以3，得到1000毫米。"
+            },
+            {
+              "type": "table",
+              "columns": [
+                "记录",
+                "观测值（毫米）"
+              ],
+              "rows": [
+                [
+                  "A",
+                  "800"
+                ],
+                [
+                  "B",
+                  "1000"
+                ],
+                [
+                  "C",
+                  "1200"
+                ]
+              ]
+            },
+            {
+              "type": "math",
+              "tex": "\\bar{x}=\\frac{800+1000+1200}{3}=1000\\ \\mathrm{mm}",
+              "display": true
+            }
+          ]
+        },
+        {
+          "id": "k-mean-recap",
+          "title": "2.2 总结与重点",
+          "sourceRefs": [
+            {
+              "sourceId": "s4",
+              "locator": "2.2本节总结"
+            }
+          ],
+          "blocks": [
+            {
+              "type": "list",
+              "items": [
+                "先核对对象、单位和测量口径。",
+                "分子与分母必须使用同一组有效记录。",
+                "缺失不等于零；平均值与原数据使用相同单位。"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "questions": [
+    {
+      "id": "ex1",
+      "number": "例1-1",
+      "title": "代号冲突",
+      "kind": "text",
+      "origin": "textbook_example",
+      "version": "1",
+      "chapterIds": [
+        "ch1"
+      ],
+      "knowledgeIds": [
+        "k1"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "s1",
+          "locator": "第1页/例1-1"
+        }
+      ],
+      "prompt": [
+        {
+          "type": "paragraph",
+          "text": "实物标签为 S01，登记表为 S10，其他信息相同。说明处理办法。"
+        }
+      ],
+      "parts": [
+        {
+          "id": "a",
+          "label": "处理办法",
+          "fields": [
+            {
+              "id": "response",
+              "kind": "text",
+              "label": "你的说明"
+            }
+          ]
+        }
+      ],
+      "answer": {
+        "version": "1",
+        "provenance": "original",
+        "status": "ready",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "保留两种代号，标记冲突，回查采集笔记；仅凭其他信息相同不能确定属于同一个样本。"
+          }
+        ],
+        "sourceRefs": [
+          {
+            "sourceId": "s1",
+            "locator": "第1页/原资料解答"
+          }
+        ]
+      },
+      "grading": {
+        "kind": "self"
+      }
+    },
+    {
+      "id": "q1",
+      "number": "练习1",
+      "title": "记录字段与缺项",
+      "kind": "text",
+      "origin": "textbook_exercise",
+      "version": "1",
+      "chapterIds": [
+        "ch1"
+      ],
+      "knowledgeIds": [
+        "k1"
+      ],
+      "sourceRefs": [
+        {
+          "sourceId": "s1",
+          "locator": "第1页/练习1"
+        }
+      ],
+      "prompt": [
+        {
+          "type": "paragraph",
+          "text": "（1）写出标签的三个必要字段。（2）若缺少日期，能否从相邻样本推断？说明理由。"
+        }
+      ],
+      "parts": [
+        {
+          "id": "a",
+          "label": "（1）必要字段",
+          "fields": [
+            {
+              "id": "fields",
+              "kind": "text",
+              "label": "写出三个字段"
+            }
+          ]
+        },
+        {
+          "id": "b",
+          "label": "（2）日期缺失",
+          "fields": [
+            {
+              "id": "reason",
+              "kind": "text",
+              "label": "结论与理由"
+            }
+          ]
+        }
+      ],
+      "answer": {
+        "version": "ai-1",
+        "provenance": "ai",
+        "status": "ready",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "（1）样本代号、采集日期、观察者。（2）不能。相邻记录不证明采集日期相同，应明确标注缺失并核查原始笔记。"
+          }
+        ],
+        "sourceRefs": []
+      },
+      "grading": {
+        "kind": "self"
+      }
+    },
+    {
+      "kind": "text",
+      "origin": "textbook_exercise",
+      "version": "1",
+      "chapterIds": [
+        "ch2"
+      ],
+      "knowledgeIds": [
+        "k-mean"
+      ],
+      "grading": {
+        "kind": "numeric",
+        "rationale": "本题单位固定为毫米，只比较唯一数值1000。",
+        "rules": [
+          {
+            "fieldId": "mean",
+            "expected": 1000,
+            "tolerance": 0
+          }
+        ]
+      },
+      "id": "q-mean",
+      "number": "练习2-1",
+      "title": "求平均值",
+      "sourceRefs": [
+        {
+          "sourceId": "s4",
+          "locator": "练习2-1"
+        }
+      ],
+      "prompt": [
+        {
+          "type": "paragraph",
+          "text": "800、1000、1200毫米三次有效观测的平均值是多少？单位已固定为毫米，请只填数值。"
+        }
+      ],
+      "parts": [
+        {
+          "id": "a",
+          "label": "你的作答",
+          "fields": [
+            {
+              "id": "mean",
+              "kind": "number",
+              "label": "平均值（毫米）"
+            }
+          ]
+        }
+      ],
+      "answer": {
+        "version": "1",
+        "provenance": "original",
+        "status": "ready",
+        "sourceRefs": [
+          {
+            "sourceId": "s4",
+            "locator": "练习2-1原资料答案"
+          }
+        ],
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "(800+1000+1200)/3=1000毫米。"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "text",
+      "origin": "textbook_exercise",
+      "version": "1",
+      "chapterIds": [
+        "ch2"
+      ],
+      "knowledgeIds": [
+        "k-mean"
+      ],
+      "grading": {
+        "kind": "choice",
+        "rationale": "原文明确n为有效观测次数，唯一选项a。",
+        "rules": [
+          {
+            "fieldId": "count",
+            "expected": "a"
+          }
+        ]
+      },
+      "id": "q-count",
+      "number": "练习2-2",
+      "title": "理解有效次数",
+      "sourceRefs": [
+        {
+          "sourceId": "s4",
+          "locator": "练习2-2"
+        }
+      ],
+      "prompt": [
+        {
+          "type": "paragraph",
+          "text": "平均值公式中的n表示什么？"
+        }
+      ],
+      "parts": [
+        {
+          "id": "a",
+          "label": "你的作答",
+          "fields": [
+            {
+              "id": "count",
+              "kind": "choice",
+              "label": "选择一项",
+              "options": [
+                {
+                  "value": "a",
+                  "label": "有效观测次数"
+                },
+                {
+                  "value": "b",
+                  "label": "最大观测值"
+                },
+                {
+                  "value": "c",
+                  "label": "缺失记录数"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "answer": {
+        "version": "1",
+        "provenance": "original",
+        "status": "ready",
+        "sourceRefs": [
+          {
+            "sourceId": "s4",
+            "locator": "练习2-2原资料答案"
+          }
+        ],
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "应选有效观测次数；它与分子所加的有效观测值一一对应。"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "text",
+      "origin": "textbook_exercise",
+      "version": "1",
+      "chapterIds": [
+        "ch2"
+      ],
+      "knowledgeIds": [
+        "k-mean"
+      ],
+      "grading": {
+        "kind": "self"
+      },
+      "id": "q-formula",
+      "number": "练习2-3",
+      "title": "写出计算式",
+      "sourceRefs": [
+        {
+          "sourceId": "s4",
+          "locator": "练习2-3"
+        }
+      ],
+      "prompt": [
+        {
+          "type": "paragraph",
+          "text": "用800、1000、1200毫米三次有效观测，写出平均值的计算式。公式可以有不同写法，请对照解析自评。"
+        }
+      ],
+      "parts": [
+        {
+          "id": "a",
+          "label": "你的作答",
+          "fields": [
+            {
+              "id": "formula",
+              "kind": "formula",
+              "label": "平均值计算式（支持LaTeX）"
+            }
+          ]
+        }
+      ],
+      "answer": {
+        "version": "1",
+        "provenance": "original",
+        "status": "ready",
+        "sourceRefs": [
+          {
+            "sourceId": "s4",
+            "locator": "练习2-3原资料答案"
+          }
+        ],
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "参考：(800+1000+1200)/3=1000。核对三次有效观测是否齐全、分母是否为3、结果是否一致。"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "text",
+      "origin": "textbook_exercise",
+      "version": "1",
+      "chapterIds": [
+        "ch2"
+      ],
+      "knowledgeIds": [
+        "k-mean"
+      ],
+      "grading": {
+        "kind": "self"
+      },
+      "id": "q-table",
+      "number": "练习2-4",
+      "title": "整理表格",
+      "sourceRefs": [
+        {
+          "sourceId": "s4",
+          "locator": "练习2-4"
+        }
+      ],
+      "prompt": [
+        {
+          "type": "paragraph",
+          "text": "将D=900毫米、E=1100毫米填入记录表，并填写两者的平均值。"
+        }
+      ],
+      "parts": [
+        {
+          "id": "a",
+          "label": "你的作答",
+          "fields": [
+            {
+              "id": "records",
+              "kind": "table",
+              "label": "记录表",
+              "columns": [
+                {
+                  "label": "记录",
+                  "editable": false
+                },
+                "观测值（毫米）"
+              ],
+              "rows": [
+                [
+                  "D",
+                  ""
+                ],
+                [
+                  "E",
+                  ""
+                ]
+              ]
+            },
+            {
+              "id": "mean-table",
+              "kind": "number",
+              "label": "平均值（毫米）"
+            }
+          ]
+        }
+      ],
+      "answer": {
+        "version": "1",
+        "provenance": "original",
+        "status": "ready",
+        "sourceRefs": [
+          {
+            "sourceId": "s4",
+            "locator": "练习2-4原资料答案"
+          }
+        ],
+        "blocks": [
+          {
+            "type": "paragraph",
+            "text": "D填900，E填1100；(900+1100)/2=1000毫米。本题表格与计算一并对照自评。"
+          }
+        ]
+      }
+    }
+  ],
+  "exams": [],
+  "issues": [],
+  "migrations": {
+    "questionAliases": {}
+  },
+  "coverage": [
+    {
+      "sourceItemId": "i1",
+      "targets": [
+        "k1",
+        "k-recap"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i2",
+      "targets": [
+        "ex1",
+        "k-recap"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i3",
+      "targets": [
+        "q1",
+        "k-recap"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i4",
+      "targets": [
+        "k1",
+        "k-recap"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i5",
+      "targets": [
+        "k-ref"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i6",
+      "targets": [
+        "k-mean",
+        "k-mean-recap"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i7",
+      "targets": [
+        "k-mean-recap"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i8",
+      "targets": [
+        "q-mean",
+        "k-mean-recap"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i9",
+      "targets": [
+        "q-count",
+        "k-mean-recap"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i10",
+      "targets": [
+        "q-formula",
+        "k-mean-recap"
+      ],
+      "status": "covered"
+    },
+    {
+      "sourceItemId": "i11",
+      "targets": [
+        "q-table",
+        "k-mean-recap"
+      ],
+      "status": "covered"
+    }
+  ],
+  "semanticReviews": [
+    {
+      "targetIds": [
+        "k1",
+        "k-recap",
+        "k-ref",
+        "k-mean",
+        "k-mean-recap",
+        "ex1",
+        "q1",
+        "q-mean",
+        "q-count",
+        "q-formula",
+        "q-table"
+      ],
+      "reviewer": "demo-author-and-independent-source-reader",
+      "method": "作者逐项核算与独立上下文对读四份原文、完整讲解、6题及答案",
+      "result": "pass",
+      "evidence": "2026-11-12实际对读四份自编原文；标签字段、冲突和缺失处理、课堂S01案例融合与旧模板对照一致；平均值的单位/口径/有效次数条件齐全，3000/3及2000/2均为1000，公式与表格保留自评。独立复核未见知识性阻断问题。",
+      "binding": {
+        "version": 1,
+        "fingerprint": "c436c7b527a862f85d269116bf4bf8a0ec7c1e4a21f55f65a52bf1f0bf0a94ff"
+      }
+    }
+  ],
+  "taskContract": {
+    "version": 1,
+    "goal": "体验从资料讲解到作答、回顾和备份的离线学习流程",
+    "basis": "公开自编示例：教材提供主线，课堂案例用于补充，旧模板仅对照。",
+    "sourceUses": [
+      {
+        "sourceId": "s1",
+        "usage": "primary",
+        "chapterIds": [
+          "ch1"
+        ],
+        "purpose": "提供知识主线、定义和原题"
+      },
+      {
+        "sourceId": "s2",
+        "usage": "explanation",
+        "chapterIds": [
+          "ch1"
+        ],
+        "purpose": "用同编号不同批次的案例解释为何不能直接合并记录"
+      },
+      {
+        "sourceId": "s3",
+        "usage": "reference",
+        "chapterIds": [
+          "ch1"
+        ],
+        "purpose": "只保留旧模板供对照，不改变现行学习要求"
+      },
+      {
+        "sourceId": "s4",
+        "usage": "primary",
+        "chapterIds": [
+          "ch2"
+        ],
+        "purpose": "提供平均值定义、条件、例证及完整原题解析"
+      }
+    ],
+    "chapterPlans": [
+      {
+        "chapterId": "ch1",
+        "mode": "textbook",
+        "primarySourceIds": [
+          "s1"
+        ],
+        "emphasis": "教材字段与冲突处理为主，课堂案例用于辨别编号和批次的关系"
+      },
+      {
+        "chapterId": "ch2",
+        "mode": "textbook",
+        "primarySourceIds": [
+          "s4"
+        ],
+        "emphasis": "先辨识有效记录和单位，再计算；公式等价表达与表格题对照自评"
+      }
+    ],
+    "pendingMaterials": []
+  },
+  "learningMap": [
+    {
+      "sourceItemId": "i1",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "k1"
+      ],
+      "summaryTargets": [
+        "k-recap"
+      ],
+      "emphasisTargets": [
+        "k-recap"
+      ],
+      "summaryNote": "总结标签字段、编号辨识和冲突处理",
+      "emphasisNote": "重点依据教材字段要求及课堂编号案例，不推测考试分值",
+      "evidence": "教材三字段及冲突原则进入标签小节与总结"
+    },
+    {
+      "sourceItemId": "i2",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "ex1"
+      ],
+      "summaryTargets": [
+        "k-recap"
+      ],
+      "emphasisTargets": [
+        "k-recap"
+      ],
+      "summaryNote": "总结标签字段、编号辨识和冲突处理",
+      "emphasisNote": "重点依据教材字段要求及课堂编号案例，不推测考试分值",
+      "evidence": "原例题和全部解答保留，冲突处理原则在总结中回顾"
+    },
+    {
+      "sourceItemId": "i3",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "q1"
+      ],
+      "summaryTargets": [
+        "k-recap"
+      ],
+      "emphasisTargets": [
+        "k-recap"
+      ],
+      "summaryNote": "总结标签字段、编号辨识和冲突处理",
+      "emphasisNote": "重点依据教材字段要求及课堂编号案例，不推测考试分值",
+      "evidence": "原练习两问保留，对应字段要求和缺项处理"
+    },
+    {
+      "sourceItemId": "i4",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "k1"
+      ],
+      "summaryTargets": [
+        "k-recap"
+      ],
+      "emphasisTargets": [
+        "k-recap"
+      ],
+      "summaryNote": "总结标签字段、编号辨识和冲突处理",
+      "emphasisNote": "重点依据教材字段要求及课堂编号案例，不推测考试分值",
+      "evidence": "课堂两件S01的情形已在标签小节第二段解释，并进入总结"
+    },
+    {
+      "sourceItemId": "i5",
+      "disposition": "reference-only",
+      "explanationTargets": [
+        "k-ref"
+      ],
+      "summaryTargets": [],
+      "emphasisTargets": [],
+      "summaryNote": "旧模板仅存档，不作为知识总结依据",
+      "emphasisNote": "按任务约定仅对照，不提升为学习重点",
+      "evidence": "旧模板原文保留，任务用途明确为reference"
+    },
+    {
+      "sourceItemId": "i6",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "k-mean"
+      ],
+      "summaryTargets": [
+        "k-mean-recap"
+      ],
+      "emphasisTargets": [
+        "k-mean-recap"
+      ],
+      "summaryNote": "回顾有效记录、次数与单位",
+      "emphasisNote": "依据原文条件，不推测考试重点",
+      "evidence": "原文定义、条件和练习分别进入对应小节或题目，章末回顾适用条件"
+    },
+    {
+      "sourceItemId": "i7",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "k-mean-recap"
+      ],
+      "summaryTargets": [
+        "k-mean-recap"
+      ],
+      "emphasisTargets": [
+        "k-mean-recap"
+      ],
+      "summaryNote": "回顾有效记录、次数与单位",
+      "emphasisNote": "依据原文条件，不推测考试重点",
+      "evidence": "原文定义、条件和练习分别进入对应小节或题目，章末回顾适用条件"
+    },
+    {
+      "sourceItemId": "i8",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "q-mean"
+      ],
+      "summaryTargets": [
+        "k-mean-recap"
+      ],
+      "emphasisTargets": [
+        "k-mean-recap"
+      ],
+      "summaryNote": "回顾有效记录、次数与单位",
+      "emphasisNote": "依据原文条件，不推测考试重点",
+      "evidence": "原文定义、条件和练习分别进入对应小节或题目，章末回顾适用条件"
+    },
+    {
+      "sourceItemId": "i9",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "q-count"
+      ],
+      "summaryTargets": [
+        "k-mean-recap"
+      ],
+      "emphasisTargets": [
+        "k-mean-recap"
+      ],
+      "summaryNote": "回顾有效记录、次数与单位",
+      "emphasisNote": "依据原文条件，不推测考试重点",
+      "evidence": "原文定义、条件和练习分别进入对应小节或题目，章末回顾适用条件"
+    },
+    {
+      "sourceItemId": "i10",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "q-formula"
+      ],
+      "summaryTargets": [
+        "k-mean-recap"
+      ],
+      "emphasisTargets": [
+        "k-mean-recap"
+      ],
+      "summaryNote": "回顾有效记录、次数与单位",
+      "emphasisNote": "依据原文条件，不推测考试重点",
+      "evidence": "原文定义、条件和练习分别进入对应小节或题目，章末回顾适用条件"
+    },
+    {
+      "sourceItemId": "i11",
+      "disposition": "integrated",
+      "explanationTargets": [
+        "q-table"
+      ],
+      "summaryTargets": [
+        "k-mean-recap"
+      ],
+      "emphasisTargets": [
+        "k-mean-recap"
+      ],
+      "summaryNote": "回顾有效记录、次数与单位",
+      "emphasisNote": "依据原文条件，不推测考试重点",
+      "evidence": "原文定义、条件和练习分别进入对应小节或题目，章末回顾适用条件"
+    }
+  ]
+}

@@ -266,6 +266,12 @@ class Portal:
                 raise HTTPError(400, "仅支持 PDF、TXT、MD、DOCX 和 PPTX 文件")
             if item.get("role") not in ROLES or type(item.get("primary")) is not bool:
                 raise HTTPError(400, "请为每份资料选择有效角色及主次")
+            usage = item.get("usage", "primary" if item["primary"] else "explanation")
+            if usage not in {"primary", "explanation", "example", "practice", "reference"} or (usage == "primary") != item["primary"]:
+                raise HTTPError(400, "资料用途与主资料选择不一致")
+            purpose = item.get("purpose", "")
+            if not isinstance(purpose, str) or len(purpose) > 1000:
+                raise HTTPError(400, "资料用途说明不能超过1000字")
             encoded = item.get("data")
             if not isinstance(encoded, str):
                 raise HTTPError(400, "文件内容无效")
@@ -285,7 +291,7 @@ class Portal:
             if digest in hashes:
                 raise HTTPError(400, "同一份资料被重复上传，请保留一份并确定其角色")
             hashes.add(digest)
-            validated.append({"id": "src-" + digest[:20], "name": name, "role": item["role"], "primary": item["primary"], "sha256": digest, "bytes": len(content), "content": content, "suffix": suffix})
+            validated.append({"id": "src-" + digest[:20], "name": name, "role": item["role"], "primary": item["primary"], "usage": usage, "purpose": purpose.strip(), "sha256": digest, "bytes": len(content), "content": content, "suffix": suffix})
         return title.strip(), scope, validated, total
 
     def _validate_signature(self, suffix, content):
@@ -374,7 +380,7 @@ class Portal:
             self._check_request_origin(env)
             path, method = env.get("PATH_INFO", "/"), env.get("REQUEST_METHOD", "GET")
             if path in {"/api/config", "/healthz"} and method == "GET":
-                body = {"status": "ok"} if path == "/healthz" else {"ready": self.config.ready, "reasons": self.config.readiness(), "limits": {"maxFiles": self.config.max_files, "maxFileBytes": self.config.max_file_bytes, "maxTotalBytes": self.config.max_total_bytes}, "formats": list(FORMATS), "retentionHours": self.config.retention_hours, "provider": self.config.provider_label, "providerId": self.config.provider, "accessCodeRequired": bool(self.config.access_code)}
+                body = {"status": "ok"} if path == "/healthz" else {"ready": self.config.ready, "reasons": self.config.readiness(), "limits": {"maxFiles": self.config.max_files, "maxFileBytes": self.config.max_file_bytes, "maxTotalBytes": self.config.max_total_bytes}, "formats": list(FORMATS), "retentionHours": self.config.retention_hours, "provider": self.config.provider_label, "providerId": self.config.provider, "accessCodeRequired": bool(self.config.access_code), "skillVersion": self.config.skill_version}
                 return self._response(start, 200, body)
             if path == "/api/jobs" and method == "POST":
                 return self._response(start, 202, self._create_job(env))

@@ -151,6 +151,7 @@
       const retention = Number.isFinite(hours) && hours > 0 ? `${hours} 小时` : '服务规定的期限';
       byId('retention-note').textContent = `资料和成品自提交起保留 ${retention}，随后自动清理。你也可以在任务页面主动删除，请及时下载成品。`;
       byId('consent-retention').textContent = `资料和成品自提交起保留 ${retention}，也可在任务页面主动删除。`;
+      byId('skill-version').textContent = typeof config.skillVersion === 'string' ? `转换组件 ${config.skillVersion}` : '转换组件版本未提供';
       byId('provider-name').textContent = typeof config.provider === 'string' && config.provider ? config.provider : '模型服务（待确认）';
       byId('access-code-field').hidden = !config.accessCodeRequired;
       byId('access-code').required = Boolean(config.accessCodeRequired);
@@ -210,7 +211,7 @@
       if (state.files.some(entry => entry.file.name === file.name && entry.file.size === file.size && entry.file.lastModified === file.lastModified)) { duplicates += 1; continue; }
       const isFirst = !state.files.length;
       const id = globalThis.crypto?.randomUUID ? crypto.randomUUID() : `file-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      state.files.push({ id, file, role: 'textbook', primary: isFirst });
+      state.files.push({ id, file, role: 'textbook', primary: isFirst, usage: 'explanation', purpose: '' });
     }
     showMessage('submit-error', duplicates ? `已跳过 ${duplicates} 份名称、大小和修改时间均相同的重复选择；内容不同的文件请使用不同名称。` : '');
     renderFiles();
@@ -247,9 +248,27 @@
       primary.id = `file-primary-${index}`;
       primary.checked = entry.primary;
       primary.setAttribute('aria-label', `将 ${entry.file.name} 设为主资料`);
-      primary.addEventListener('change', () => { entry.primary = primary.checked; updateFileSummary(); validateChosenFiles(); updateSubmit(); });
+      primary.addEventListener('change', () => { entry.primary = primary.checked; usage.disabled = entry.primary; usage.value = entry.primary ? 'primary' : entry.usage; updateFileSummary(); validateChosenFiles(); updateSubmit(); });
       primaryLabel.append(primary, el('span', '', '主资料'));
-      controls.append(label, primaryLabel);
+      const usageLabel = el('label', '', '资料用途');
+      const usage = el('select');
+      usage.id = `file-usage-${index}`;
+      usage.setAttribute('aria-label', `${entry.file.name} 的资料用途`);
+      [['primary','学习主线'],['explanation','补充解释'],['example','补充例证'],['practice','题目与解析'],['reference','仅作对照或存档']].forEach(([value,title]) => { const option=el('option','',title); option.value=value; option.disabled=value==='primary'; usage.append(option); });
+      usage.value = entry.primary ? 'primary' : entry.usage;
+      usage.disabled = entry.primary;
+      usage.addEventListener('change', () => { entry.usage = usage.value; });
+      usageLabel.append(usage);
+      const purposeLabel = el('label', '', '具体要求（选填）');
+      const purpose = el('input');
+      purpose.type = 'text'; purpose.maxLength = 1000;
+      purpose.id = `file-purpose-${index}`;
+      purpose.value = entry.purpose;
+      purpose.setAttribute('aria-label', `${entry.file.name} 的具体要求`);
+      purpose.placeholder = '例如：案例融入讲解，重点比较适用条件';
+      purpose.addEventListener('input', () => { entry.purpose = purpose.value; });
+      purposeLabel.append(purpose);
+      controls.append(label, primaryLabel, usageLabel, purposeLabel);
       row.append(top, controls);
       list.append(row);
     });
@@ -284,7 +303,7 @@
     updateSubmit();
     try {
       const files = [];
-      for (const entry of state.files) files.push({ name: entry.file.name, role: entry.role, primary: entry.primary, data: await fileBase64(entry.file) });
+      for (const entry of state.files) files.push({ name: entry.file.name, role: entry.role, primary: entry.primary, usage: entry.primary ? 'primary' : entry.usage, purpose: entry.purpose.trim(), data: await fileBase64(entry.file) });
       const body = {
         title: byId('book-title').value.trim() || (state.files.find(entry => entry.primary)?.file.name || '交互学习教材').replace(/\.[^.]+$/, '').slice(0, 120), mode: byId('material-mode').value,
         scope: byId('scope').value.trim(), consent: byId('consent').checked, consentProvider: state.config.providerId, files
@@ -307,6 +326,7 @@
     } finally {
       state.submitting = false;
       fields.forEach(node => { node.disabled = false; });
+      state.files.forEach((entry,index) => { const use=byId(`file-usage-${index}`); if(use)use.disabled=entry.primary; });
       updateSubmit();
     }
   }

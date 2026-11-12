@@ -101,7 +101,7 @@ def extract_sources(job_dir, manifest, max_pages=800, cancelled=lambda: False):
         sid = file['id']
         sources.append({'id': sid, 'title': file['name'], 'role': file['role'],
                         'identity': '用户上传原件；版本以正文与封面为准', 'sha256': file['sha256'],
-                        'locator': '见逐项来源定位', 'primary': file.get('primary', False)})
+                        'locator': '见逐项来源定位', 'primary': file.get('primary', False), 'usage': file.get('usage'), 'purpose': file.get('purpose', '')})
         ext = Path(file['name']).suffix.lower()
         if ext == '.pdf':
             try:

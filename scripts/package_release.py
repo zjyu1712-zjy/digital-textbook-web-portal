@@ -5,11 +5,15 @@ import json
 import zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
-TOP={'README.md','ACCEPTANCE.md','requirements.txt','package.json','Dockerfile','compose.yaml','Caddyfile','.env.example','.env.bailian.example','.gitignore','.dockerignore'}
+TOP={'skill-lock.json','README.md','ACCEPTANCE.md','requirements.txt','package.json','Dockerfile','compose.yaml','Caddyfile','.env.example','.env.bailian.example','.gitignore','.dockerignore'}
 DIRS={'portal','static','skill','scripts','tests','docs'}
 
 
 def main():
+    import sys
+    sys.path.insert(0, str(ROOT))
+    from portal.skill_sync import verify_skill
+    verify_skill(ROOT/'skill', ROOT/'skill-lock.json')
     destination=ROOT.parent/'digital-textbook-web-portal.zip'
     files=[]
     for path in sorted(ROOT.rglob('*')):

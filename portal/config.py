@@ -5,6 +5,8 @@ from pathlib import Path
 import re
 from urllib.parse import urlsplit
 
+from .skill_sync import verify_skill
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -73,6 +75,14 @@ class Config:
                 fields[name] = int(os.environ[env])
         return cls(**fields)
 
+    @property
+    def skill_version(self):
+        try:
+            import json
+            return json.loads((self.skill_dir / 'RELEASE.json').read_text(encoding='utf-8'))['version']
+        except (OSError, ValueError, KeyError):
+            return '未安装'
+
     def readiness(self):
         reasons = []
         if not self.api_key.strip():
@@ -83,6 +93,11 @@ class Config:
             reasons.append("管理员尚未配置百炼业务空间 ID")
         if not (self.skill_dir / "SKILL.md").is_file():
             reasons.append("转换 Skill 尚未安装到服务端")
+        else:
+            try:
+                verify_skill(self.skill_dir, ROOT / 'skill-lock.json')
+            except (OSError, ValueError, KeyError) as exc:
+                reasons.append('转换组件版本校验未通过，请管理员核对安装：' + str(exc))
         return reasons
 
     @property

@@ -1,0 +1,95 @@
+{
+  "source": "本项目自编原文：tests/fixtures/general-source.txt、fusion-supplement.txt、fusion-reference.txt及examples/measurement-source.txt；逐项独立列出。",
+  "items": [
+    {
+      "id": "i1",
+      "sourceId": "s1",
+      "locator": "第1页/1.1",
+      "kind": "lesson",
+      "expectedParts": []
+    },
+    {
+      "id": "i2",
+      "sourceId": "s1",
+      "locator": "第1页/例1-1",
+      "kind": "example",
+      "expectedParts": [
+        "a"
+      ]
+    },
+    {
+      "id": "i3",
+      "sourceId": "s1",
+      "locator": "第1页/练习1",
+      "kind": "exercise",
+      "expectedParts": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "i4",
+      "sourceId": "s2",
+      "locator": "第1页/同编号案例",
+      "kind": "lesson",
+      "expectedParts": []
+    },
+    {
+      "id": "i5",
+      "sourceId": "s3",
+      "locator": "第1页/旧模板",
+      "kind": "reference",
+      "expectedParts": []
+    },
+    {
+      "id": "i6",
+      "sourceId": "s4",
+      "locator": "2.1与示例记录",
+      "kind": "lesson",
+      "expectedParts": []
+    },
+    {
+      "id": "i7",
+      "sourceId": "s4",
+      "locator": "2.2本节总结",
+      "kind": "lesson",
+      "expectedParts": []
+    },
+    {
+      "id": "i8",
+      "sourceId": "s4",
+      "locator": "练习2-1",
+      "kind": "exercise",
+      "expectedParts": [
+        "a"
+      ]
+    },
+    {
+      "id": "i9",
+      "sourceId": "s4",
+      "locator": "练习2-2",
+      "kind": "exercise",
+      "expectedParts": [
+        "a"
+      ]
+    },
+    {
+      "id": "i10",
+      "sourceId": "s4",
+      "locator": "练习2-3",
+      "kind": "exercise",
+      "expectedParts": [
+        "a"
+      ]
+    },
+    {
+      "id": "i11",
+      "sourceId": "s4",
+      "locator": "练习2-4",
+      "kind": "exercise",
+      "expectedParts": [
+        "a"
+      ]
+    }
+  ]
+}
