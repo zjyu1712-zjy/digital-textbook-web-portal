@@ -2,7 +2,7 @@
 
 使用者打开网站，上传教材（或教材与课件、提纲、解析、真题），选择资料主次，等待处理和检查，下载一个可离线学习的 HTML。无需安装 Codex、配置模型密钥或启动本机服务器。
 
-**当前交付为可部署工程，不是已经上线的公共网站。** 当前开发环境没有模型 API 和公网服务器。网页交互、真实打包、离线浏览器与故障门禁经过测试；Linux 容器构建、持久卷、Chromium 与 HTTP 服务已实测通过。付费模型的完整转换、目标服务器与公网 HTTPS 尚未实测，详见 `ACCEPTANCE.md`。模型测试替身只在 `tests/`，生产服务没有假转换开关。
+**当前版本：网页端 0.3.0，随包技能 1.3.0。交付为可部署工程，尚未上线公共网站。** 本轮已测试网页交互、实际打包、离线浏览器与故障门禁；模型调用使用测试替身。此前版本的 Linux 容器构建、持久卷、Chromium 与 HTTP 服务有实测记录，不能据此认定新版容器已通过。付费模型的完整转换、目标服务器与公网 HTTPS 尚未实测，详见 [验收记录](ACCEPTANCE.md)。模型测试替身只在 `tests/`，生产服务没有假转换开关。
 
 本仓库包含网页、任务后台、转换流程、检查工具与 Docker Compose 部署配置。仅需在 Codex 中使用 Skill 时，可使用独立的 [digital-textbook-html 仓库](https://github.com/zjyu1712-zjy/digital-textbook-html)。本工程随附 `skill/`，部署时不需要安装 Codex，也不需要从另一仓库临时下载组件。
 
@@ -48,12 +48,15 @@ cp .env.example .env
 python3 -m portal --port 8000
 ```
 
-打开 `http://127.0.0.1:8000`。此开发入口只监听本机，不能把它当作公网发布方式。手动运行转换时，Python 需 3.12 或更新版，安装 `requirements.txt`、Node/Playwright 和可用 Chromium 浏览器；可设置 `NODE_BINARY`、`PLAYWRIGHT_MODULE`、`BROWSER_EXECUTABLE`。容器使用 Python 3.12、Node 24 和 Linux Chromium，已在 GitHub Linux runner 实际构建并通过离线浏览器预检。目标服务器上的网络、DNS、HTTPS 与真实模型权限仍需上线时实测。手动运行需 Node 20 或更新版；Node 18 无法启动当前 Playwright。
+打开 `http://127.0.0.1:8000`。此开发入口只监听本机，不能把它当作公网发布方式。手动运行转换时，Python 需 3.12 或更新版，安装 `requirements.txt`、Node/Playwright 和可用 Chromium 浏览器；可设置 `NODE_BINARY`、`PLAYWRIGHT_MODULE`、`BROWSER_EXECUTABLE`。容器使用 Python 3.12、Node 24 和 Linux Chromium；此前版本已在 GitHub Linux runner 实测，新版仍需重新运行容器检查。目标服务器上的网络、DNS、HTTPS 与真实模型权限也需上线时实测。手动运行需 Node 20 或更新版；Node 18 无法启动当前 Playwright。
 
 ## 转换与检查
 
 - 上传时可为辅料选择补充解释、例证、题目解析或仅对照，并填写具体要求；角色名称不会自动决定主次。计划阶段记录逐份资料用途与章节重点，生成阶段记录真正融入讲解、总结与重点的位置。
 - 新任务生成 schema v2；独立请求实际审查通过后，才把审查记录绑定到最终题目、答案、来源、用途和融合内容。审查之后的知识内容变化不能靠重新计算绑定掩盖。
+- 在逐单元核查之外增加先读来源的独立抽检：按章节、来源和内容类型选样，每个样本先用独立无会话请求读取原页并保存观察，再另行对照生成的讲解、总结、重点和题目。原页不可定位、必要条件缺失或抽检不通过时停止交付。这里的“独立”指请求与上下文分开，仍使用同一模型，不代表不同模型或人工复核；抽样通过也不代表全文无误。
+- 章节页分别展示内容、审校、抽检、离线和视觉检查的实际状态。离线证据绑定到当前章节内容与实际检查文件，只覆盖打开的小节、题目及实际输入恢复的题目；共享存储检查不扩大为每题作答通过，未覆盖的视觉检查保持未验证。旧任务即使已可下载，也不会自动补成新增抽检阶段已通过。
+- 下载的 HTML 内嵌错题本：归集明确判错的客观题和手动标记的题目，主观题不自动判错；支持按章筛选、查看解析与历次作答、重做、待复习/已掌握、导出和题目版本追溯。重做不覆盖旧记录，题目变更后保留旧版本关联。这些功能随成品离线运行。
 - 直接加载随包 `skill/` 的质量要求、个人学习偏好、资料模式、学科细则和数据契约，调用原 Python 构建器、公式检查器与学习组件。没有为五门课重写五套网页。
 - PDF 逐页提取文字并渲染原页供模型核查。扫描 PDF 可走视觉识别；模糊、损坏、缺页或无法确认的资料停为待核对。TXT/MD 必须 UTF-8。简单 DOCX/PPTX 可读取；有图片、公式、图表、表格、备注、脚注或复杂绘图时，明确要求从原应用导出**包含相关内容**的 PDF，不能静默丢弃。PPT 备注应使用备注页导出。
 - 在写课程之前独立生成逐页来源清单；按真实章节组织，长章按小节处理。讲解与答案由模型构建，另一次请求对照原页做语义核查，结构计数不冒充学术正确。原答案/教师答案/未知参考/AI答案分别标记。
@@ -97,7 +100,7 @@ OpenAI API 实现依据：[Responses JSON 模式](https://developers.openai.com/
 先取得经过核对的固定上游版本，在门户目录执行：
 
 ```sh
-python3 scripts/sync_skill.py --source /absolute/path/digital-textbook-html --upstream-ref v1.2.1
+python3 scripts/sync_skill.py --source /absolute/path/digital-textbook-html --upstream-ref v1.3.0
 python3 scripts/sync_skill.py
 python3 scripts/sync_skill.py --check-source /absolute/path/digital-textbook-html
 ```

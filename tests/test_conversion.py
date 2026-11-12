@@ -57,6 +57,18 @@ class FixtureModel:
             return {'pass':True,'reviewedItemIds':[i['id'] for i in data['context']['inventory']], 'evidence':'测试替身：核查三项来源，仅用于测试流程', 'issues':[]}
         if stage == 'global-review':
             return {'pass':True,'evidence':'测试替身：索引完整', 'issues':[]}
+        if stage.startswith('independent-source:'):
+            sample = data['packet']['samples'][0]
+            return {'observation':{'sampleId':sample['sampleId'],'sourceId':sample['sourceId'],'locator':sample['locator'],
+                'expectedPoints':['测试替身：按原节选核对字段、缺失与冲突；仅用于编排测试'],
+                'evidence':'测试替身：来自本次原始文字，不是实际模型审读'}}
+        if stage.startswith('independent-compare:'):
+            sample = data['packet']['samples'][0]
+            checks = dict.fromkeys(['sourceFidelity','explanation','summary','emphasis'], 'pass')
+            if sample['reviewMode'] == 'reference':
+                checks.update(summary='not-applicable', emphasis='not-applicable')
+            return {'record':{'sampleId':sample['sampleId'],'result':'pass','checks':checks,
+                'evidence':'测试替身：核对当前样本的定位及用途；仅用于流程验证','issues':[]}}
         if stage == 'visual-review':
             return {'pass':True,'scope':'测试替身，不代表实际视觉核查','evidence':'单元测试依赖注入','issues':[]}
         raise AssertionError(stage)
@@ -92,6 +104,8 @@ class ConversionTests(unittest.TestCase):
         self.assertEqual(len(course['questions']),2)
         self.assertEqual(load_pipeline(self.config.skill_dir).audit_reviews(course,json.loads((self.root/'source-inventory.json').read_text()))['status'],'pass')
         self.assertTrue(all(r.get('binding') for r in course['semanticReviews']))
+        self.assertEqual(load_pipeline(self.config.skill_dir).audit_independent(course,json.loads((self.root/'source-inventory.json').read_text()),required=True)['status'],'sampled-pass')
+        self.assertEqual(course['chapterChecks'], [], 'Unscoped browser double cannot certify chapter verification')
         self.assertEqual(course['scope']['completeness'],'excerpt')
         self.assertTrue(course['version'].startswith('v-'))
         self.assertTrue((self.root/'full-source-inventory.json').exists())
@@ -195,6 +209,33 @@ class ConversionTests(unittest.TestCase):
             count.append(1)
             return browser_double(*args) if len(count)==1 else {'status':'fail','detail':'regression'}
         self.assertEqual(self.run_conversion(browser=check)['status'],'needs_attention')
+    def test_independent_sampling_failure_does_not_open_download(self):
+        class FailedSample(FixtureModel):
+            def ask(self, stage, *args, **kwargs):
+                result = super().ask(stage, *args, **kwargs)
+                if stage.startswith('independent-compare:'):
+                    result['record']['checks']['explanation'] = 'fail'
+                    result['record'].update(result='fail', issues=[{'aspect':'explanation','description':'测试替身：知识点未融入正文'}])
+                return result
+        result = self.run_conversion(FailedSample)
+        self.assertEqual(result['status'], 'needs_attention')
+        self.assertNotIn('artifact', result)
+        self.assertFalse((self.root/'output/学习教材.html').exists())
+        course = json.loads((self.root/'course.json').read_text())
+        self.assertTrue(course['independentReview']['required'])
+        self.assertTrue(all(r['result'] == 'fail' for r in course['independentReview']['records']))
+    def test_source_change_during_sampling_is_rejected(self):
+        root = self.root
+        class ChangedDuringSampling(FixtureModel):
+            def ask(self, stage, *args, **kwargs):
+                result = super().ask(stage, *args, **kwargs)
+                if stage.startswith('independent-compare:'):
+                    (root/'input.txt').write_text('source changed during independent review')
+                return result
+        result = self.run_conversion(ChangedDuringSampling)
+        self.assertEqual(result['status'], 'needs_attention')
+        self.assertIn('原件在抽检期间', result['message'])
+        self.assertFalse((self.root/'output/学习教材.html').exists())
     def test_tampered_input_is_blocked(self):
         (self.root/'input.txt').write_text('changed')
         self.assertEqual(self.run_conversion()['status'],'needs_attention')

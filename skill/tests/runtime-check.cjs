@@ -178,8 +178,8 @@ async function main() {
   const rich=course.chapters.find(ch=>JSON.stringify(ch.sections).match(/"type":"(math|matrix|table|diagram|image)"/))||course.chapters[0];
   await go(page,'chapter/'+rich.id);await screenshot(page,'desktop-chapter');
   if(await page.locator('#main details').count()){
-    const d=page.locator('#main details').first();await d.locator('summary').click();assert.equal(await d.getAttribute('open'),'');
-    await d.locator('summary').click();pass('collapsible-sections','实际章节折叠区可展开和收起。');
+    const d=page.locator('#main details').first();await d.locator(':scope > summary').click();assert.equal(await d.getAttribute('open'),'');
+    await d.locator(':scope > summary').click();pass('collapsible-sections','实际章节折叠区可展开和收起。');
   }else skip('collapsible-sections','当前章节无折叠区。');
   await page.setViewportSize({width:390,height:844});await screenshot(page,'narrow-chapter');
   await page.setViewportSize({width:1440,height:980});

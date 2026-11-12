@@ -12,7 +12,7 @@
   const terminal = new Set(['ready', 'needs_attention', 'failed', 'cancelled', 'interrupted']);
   const stageLabels = {
     queued: '等待处理', running: '正在处理', extracting: '读取资料', inventory: '核对资料清单',
-    planning: '确定学习结构', generating: '构建教材内容', reviewing: '核查内容与来源',
+    planning: '确定学习结构', generating: '构建教材内容', reviewing: '核查内容与来源', sampling: '独立抽样对读',
     validating: '检查与打包', testing: '检验学习页面', ready: '可以下载',
     needs_attention: '需要补充核对', failed: '转换未完成', cancelled: '已取消', interrupted: '处理中断'
   };
@@ -22,6 +22,7 @@
     ['planning', '确定学习结构', '依据主资料建立范围与章节'],
     ['generating', '逐章构建内容', '保留实质讲解、原题与答案出处'],
     ['reviewing', '核查内容与来源', '独立核对覆盖情况和解答'],
+    ['sampling', '独立抽样对读', '先读原页，再核对知识点、总结与重点'],
     ['validating', '打包与功能检查', '检查结构、公式与离线学习功能'],
     ['ready', '下载交互教材', '交付一个可以离线打开的 HTML']
   ];
@@ -397,7 +398,8 @@
     const reported = new Set(events.map(event => progressIndex(event.stage)).filter(index => index >= 0));
     const steps = progress.map(([key, title, detail], index) => {
       const node = el('li', 'progress-step');
-      const done = !stopped && (job.status === 'ready' || (reported.has(index) && index < stageIndex));
+      const done = !stopped && (key === 'ready' ? job.status === 'ready' :
+        reported.has(index) && (job.status === 'ready' || index < stageIndex));
       const current = !stopped && index === stageIndex;
       node.classList.toggle('is-done', done);
       node.classList.toggle('is-current', current);

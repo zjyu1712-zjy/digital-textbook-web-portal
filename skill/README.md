@@ -8,7 +8,7 @@
 
 ## 先看成品
 
-[下载可离线试用的自编示例 HTML](https://github.com/zjyu1712-zjy/digital-textbook-html/releases/download/v1.2.1/demo-general.html)，保存后用浏览器打开。示例包含两章、六道题，可体验资料讲解与融合、数值和公式等输入、历次作答、备份下载与恢复；没有预置用户学习记录。
+[下载可离线试用的自编示例 HTML](https://github.com/zjyu1712-zjy/digital-textbook-html/releases/download/v1.3.0/demo-general.html)，保存后用浏览器打开。示例包含两章、六道题，可体验资料讲解与融合、数值和公式等输入、历次作答、错题复习、章级状态、备份下载与恢复；没有预置用户学习记录。
 
 | 章节阅读（宽屏） | 公式作答（宽屏） | 备份与恢复（390px） |
 | --- | --- | --- |
@@ -20,7 +20,7 @@
 
 两种方式任选其一。使用生成后的 HTML 不需要 Python、Node 或安装技能。
 
-**方式一：直接下载技能包。** 从 [GitHub Releases](https://github.com/zjyu1712-zjy/digital-textbook-html/releases/tag/v1.2.1) 下载 `digital-textbook-html-1.2.1.zip`，保留解压后的完整目录，放入自己的 AI 助手技能目录。此安装方式不需要 Node。各平台目录见 [跨平台说明](references/platform-compatibility.md)。已有同名技能先备份个人修改。
+**方式一：直接下载技能包。** 从 [GitHub Releases](https://github.com/zjyu1712-zjy/digital-textbook-html/releases/tag/v1.3.0) 下载 `digital-textbook-html-1.3.0.zip`，保留解压后的完整目录，放入自己的 AI 助手技能目录。此安装方式不需要 Node。各平台目录见 [跨平台说明](references/platform-compatibility.md)。已有同名技能先备份个人修改。
 
 **方式二：使用安装工具。** 先查看 Node 版本，达到安装器要求后，在希望使用技能的项目目录运行：
 
@@ -62,6 +62,9 @@ npx skills add zjyu1712-zjy/digital-textbook-html --skill digital-textbook-html 
 - **学科策略：**数学与推导、理论与论述、模型与图形、会计业务与表格、数据与统计、通用教材，可组合使用。
 - **学习页面：**独立章节、搜索、知识点与题目跳转、原例题/原练习、真题整卷入口、隐藏答案及来源标记。
 - **作答与记录：**文字、填空、数值、选择、多选、公式、矩阵、分录、表格；图片附件、草稿自动保存、追加历次作答、完整备份导入导出。
+- **错题复习：**明确的客观错答和手动标记进入错题本；按章筛选、重做、标记掌握并导出含图片的记录。不同题目/答案版本分别保留，正确重做不删除过去的错误。
+- **独立抽检：**按原资料清单抽取跨章节、来源与类型的样本，先独立读原文，再检查生成讲解、总结与重点。保存原文观察和逐样本依据；内容变化后旧结论过期，抽样通过不冒充全文通过。
+- **章级状态：**分别显示内容整理、审校、抽检、离线功能和视觉检查的范围；没有实际证据时显示未验证。
 
 原题、原答案与 AI 参考答案分别标记。缺页、模糊题设、版本冲突和无法确认的答案须明确报告；不能用摘要、原创自测或编造内容代替教材。更换 AI 不改变这些标准，也不保证不同模型的教学质量相同。
 

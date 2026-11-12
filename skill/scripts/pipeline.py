@@ -5,6 +5,8 @@ from html.parser import HTMLParser
 from task_contract import classify,validate_contract
 from review_audit import validate_learning_map,review_fingerprint,audit_reviews
 from grading import validate_grading
+from independent_audit import create_plan,review_packet,audit_independent
+from chapter_status import chapter_binding,chapter_status,validate_chapter_checks
 SKILL=Path(__file__).resolve().parents[1]
 MODES={'textbook','slides','outline','combined'}
 DISCIPLINES={'math','theory','models','accounting','statistics','general'}
@@ -122,6 +124,13 @@ def validate(d,inv):
   e.extend(validate_contract(d));e.extend(validate_learning_map(d,inv));e.extend(audit_reviews(d,inv)['errors'])
  elif any(r.get('binding')for r in d.get('semanticReviews',[])if isinstance(r,dict)):
   e.extend(audit_reviews(d,inv)['errors'])
+ e.extend(validate_chapter_checks(d,inv))
+ independent=d.get('independentReview')
+ required=isinstance(independent,dict)and independent.get('required')is True
+ if isinstance(independent,dict)and 'required'in independent and type(independent['required'])is not bool:e.append('independentReview.required must be boolean')
+ sampled=audit_independent(d,inv,required=required)
+ e.extend(sampled['errors'])
+ if sampled['status']in ('failed','invalid','stale')or(required and sampled['status']!='sampled-pass'):e.append('independent review: '+sampled['status'])
  return list(dict.fromkeys(e))
 def checkpoint(d):
  shared={k:d.get(k)for k in ['organization','taskContract','disciplines','sources','edition','preferencesVersion']}
@@ -163,8 +172,8 @@ def embedded_math_css():
 def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None):
  d=copy.deepcopy(data);errors=validate(d,inventory)
  if errors and not allow_incomplete:raise ValueError('\n'.join(errors))
- d['validation']={'structuralErrors':errors,'sourceItems':len(inventory['items']),'counts':{k:sum(q['origin']==k for q in d['questions'])for k in sorted(ORIGINS)},'assurance':audit_reviews(d,inventory),'note':'结构和审校时效验证不证明学术正确；语义核查仍须实际对读。'};d['sourceInventory']=inventory
  if errors:d['scope']['completeness']='incomplete'
+ d['validation']={'structuralErrors':errors,'sourceItems':len(inventory['items']),'counts':{k:sum(q['origin']==k for q in d['questions'])for k in sorted(ORIGINS)},'assurance':audit_reviews(d,inventory),'independent':audit_independent(d,inventory),'chapterStatus':chapter_status(d,inventory),'note':'结构和审校时效验证不证明学术正确；语义核查仍须实际对读。'};d['sourceInventory']=inventory
  expressions=list(math_expressions(d))
  if expressions:
   n=node or os.environ.get('NODE_BINARY')or shutil.which('node')
@@ -182,7 +191,7 @@ def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None):
    b['data']='data:'+mime+';base64,'+base64.b64encode(p.read_bytes()).decode()
  css=embedded_math_css()
  payload=json.dumps(d,ensure_ascii=False,separators=(',',':')).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
- values={'TITLE':html.escape(d['title']),'CSS':css+'\n'+(SKILL/'assets/style.css').read_text(encoding="utf-8"),'DATA':payload,'JS':'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['vendor/katex.min.js','storage.js','grading.js','app.js'])}
+ values={'TITLE':html.escape(d['title']),'CSS':css+'\n'+'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['style.css','mistakes.css','quality.css']),'DATA':payload,'JS':'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['vendor/katex.min.js','storage.js','grading.js','mistakes.js','quality.js','app.js'])}
  shell=(SKILL/'assets/shell.html').read_text(encoding="utf-8")
  for k,v in values.items():shell=shell.replace('@@'+k+'@@',v)
  dest=Path(dest);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(shell,encoding="utf-8")
@@ -206,6 +215,14 @@ def main():
  for cmd in ('review-state','review-binding'):
   a=sp.add_parser(cmd);a.add_argument('course');a.add_argument('--inventory',required=True);a.add_argument('--out',required=True)
   if cmd=='review-binding':a.add_argument('--targets',nargs='+',required=True)
+ for cmd in ('independent-plan','independent-packet','independent-state','chapter-state','chapter-binding'):
+  a=sp.add_parser(cmd);a.add_argument('course');a.add_argument('--inventory',required=True);a.add_argument('--out',required=True)
+  if cmd=='independent-plan':
+   a.add_argument('--producer',required=True);a.add_argument('--minimum-per-group',type=int,default=1);a.add_argument('--extra-items',nargs='*')
+  if cmd=='independent-packet':
+   a.add_argument('--plan',required=True);a.add_argument('--phase',choices=['source','compare'],default='source');a.add_argument('--source-read');a.add_argument('--sample')
+  if cmd=='independent-state':a.add_argument('--required',action='store_true')
+  if cmd=='chapter-binding':a.add_argument('--chapter',required=True)
  for cmd in ('validate','build'):
   a=sp.add_parser(cmd);a.add_argument('course');a.add_argument('--inventory',required=True);a.add_argument('--out',required=True)
   if cmd=='build':a.add_argument('--assets',default='.');a.add_argument('--allow-incomplete',action='store_true');a.add_argument('--node')
@@ -221,8 +238,18 @@ def main():
   elif args.cmd=='review-binding':
    fingerprint=review_fingerprint(read(args.course),read(args.inventory),args.targets)
    write(args.out,{'targetIds':args.targets,'binding':{'version':1,'fingerprint':fingerprint},'note':'仅计算当前内容指纹，不创建审查结论；实际核查完成后才可将绑定写入对应审校记录。'})
+  elif args.cmd=='independent-plan':
+   write(args.out,create_plan(read(args.course),read(args.inventory),args.producer,args.minimum_per_group,args.extra_items))
+  elif args.cmd=='independent-packet':
+   write(args.out,review_packet(read(args.course),read(args.inventory),read(args.plan),phase=args.phase,source_read=read(args.source_read)if args.source_read else None,sample_id=args.sample))
+  elif args.cmd=='independent-state':
+   report=audit_independent(read(args.course),read(args.inventory),required=args.required);write(args.out,report);print(json.dumps({'status':report['status'],'selectedCount':report['selectedCount'],'reviewedCount':report['reviewedCount']},ensure_ascii=False));return 0 if report['status']=='sampled-pass'else(2 if report['status']in ('not-reviewed','pending')and not report['required'] else 1)
+  elif args.cmd=='chapter-binding':
+   write(args.out,{'chapterId':args.chapter,'binding':chapter_binding(read(args.course),read(args.inventory),args.chapter),'note':'仅计算绑定，不生成验收结论。实际测试后记录检查范围、文件摘要与证据。'})
+  elif args.cmd=='chapter-state':
+   report=chapter_status(read(args.course),read(args.inventory));write(args.out,report);print(json.dumps({'chapters':len(report['chapters']),'errors':report['errors'],'note':report['note']},ensure_ascii=False));return bool(report['errors'])
   elif args.cmd=='validate':
-   d=read(args.course);inv=read(args.inventory);e=validate(d,inv);write(args.out,{'errors':e,'structuralPass':not e,'assurance':audit_reviews(d,inv),'semanticMeaning':'结构及审校时效通过不等于学术正确；旧v1自由文本记录不证明本轮审校完成'});print(json.dumps({'errors':e},ensure_ascii=False));return bool(e)
+   d=read(args.course);inv=read(args.inventory);e=validate(d,inv);write(args.out,{'errors':e,'structuralPass':not e,'assurance':audit_reviews(d,inv),'independent':audit_independent(d,inv),'chapterStatus':chapter_status(d,inv),'semanticMeaning':'结构及审校时效通过不等于学术正确；旧v1自由文本记录不证明本轮审校完成'});print(json.dumps({'errors':e},ensure_ascii=False));return bool(e)
   elif args.cmd=='build':print(json.dumps(build(read(args.course),read(args.inventory),args.out,args.assets,args.allow_incomplete,args.node),ensure_ascii=False))
   elif args.cmd=='inspect':
    e=inspect_html(args.html);print(json.dumps(e,ensure_ascii=False));return bool(e)

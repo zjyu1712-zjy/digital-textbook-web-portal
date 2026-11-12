@@ -166,6 +166,11 @@ async function finish(page) {
   await finish(page);
   assert.match(await page.locator('#job-title').innerText(),/自写教材/);
   pass('刷新后凭本机任务 ID 与令牌恢复；本地不保存教材正文或书名；令牌不进 URL');
+  const sampleStep=page.locator('#progress-steps .progress-step').filter({hasText:'独立抽样对读'});
+  assert.equal(await sampleStep.count(),1);
+  assert.equal(await sampleStep.evaluate(el=>el.classList.contains('is-done')),false,
+    '固定测试替身和旧任务没有抽检事件，不能因已下载就补画抽检通过');
+  pass('新增抽检步骤不追认旧任务或未执行阶段');
   await screenshot(page,'desktop-ready.png');
   await noOverflow(page,'完成页桌面无横向溢出');
   await page.setViewportSize({width:390,height:844});

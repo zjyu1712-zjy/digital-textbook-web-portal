@@ -20,6 +20,8 @@
 - `learningMap:[{sourceItemId,disposition,explanationTargets,summaryTargets,emphasisTargets,summaryNote,emphasisNote,evidence}]` 保存实质融合处理。
 - `semanticReviews:[{targetIds,reviewer,method,result:pass|pending|fail,evidence,binding:{version:1,fingerprint}}]` 只能填写实际做过的核查；绑定过期不能继续算pass，不由build自动生成结论。
 - 上述v2新增字段的枚举、例子、绑定及旧数据升级见 [任务资料约定与审校时效](task-contract-and-review.md)。
+- 可选 `independentReview:{required?,plan,sourceRead,records}` 保存先读原文、再对照生成内容的独立抽检；`required:true` 时缺项、过期或失败不能交付完整成果。计划及记录结构见 [独立抽检](independent-review.md)。旧教材不因缺此字段被自动补出通过结论。
+- 可选 `chapterChecks` 保存实际浏览器/视觉证据，派生的 `validation.chapterStatus` 分别展示各章内容、审校、抽检和验证范围；见 [章级状态](chapter-status.md)。构建成功不产生功能或视觉通过。
 - `issues:[]`；`migrations:{questionAliases:{旧ID:新ID}}` 只用于真实不可避免的ID变更；默认不变。迁移不改写旧快照。
 - `acceptance` 为验收说明的内容块数组；结果只写真实测试，明确范围和未验证项。
 
@@ -42,7 +44,7 @@ numeric接受首尾空格、全角数字/符号、十进制、科学计数法及
 
 ## 学习记录
 
-IndexedDB `digital-textbook:<book.id>`，结构版本独立于书的内容version。表：drafts / attempts / attachments / progress / notes / events / versions / settings。
+IndexedDB `digital-textbook:<book.id>`，结构版本独立于书的内容version。表：drafts / attempts / attachments / progress / notes / events / versions / settings。错题标记与掌握状态追加到 events，完整备份仍为formatVersion 1，不增加数据库版本；详见 [错题本](mistakes.md)。
 草稿 `{id,courseId,questionId,questionVersion,answerVersion,answers,attachments,rev,viewedAnswer,startedAt,updatedAt}`；提交是追加且含完整 questionSnapshot/referenceAnswer、版本、时间、判定。附件存Blob与内容hash。自评与看答案事件追加，不修改提交事实。
 完整备份 `format:digital-textbook-backup,formatVersion:1,course:{id,version},tables`；跨教材拒绝，冲突整次中止。旧系统备份不直接冒充此格式，需受测试的专用迁移工具；本Skill未内置五种旧备份的一键迁移器。
 

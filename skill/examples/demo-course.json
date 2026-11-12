@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "digital-textbook-public-demo",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "title": "记录与测量 · 交互教材示例",
   "edition": "项目自编演示节选",
   "scope": {
@@ -141,7 +141,7 @@
           "blocks": [
             {
               "type": "paragraph",
-              "text": "同类对象的测量记录，先确认单位和测量口径一致，再计算算术平均值。把有效观测值相加，除以有效观测次数。缺失值不能擅自当作0，也不能计入有效观测次数。"
+              "text": "先确认对象、单位和测量口径一致，再计算算术平均值。把有效观测值相加，除以有效观测次数。缺失值不能擅自当作0，也不能计入有效观测次数。"
             },
             {
               "type": "math",
@@ -732,6 +732,41 @@
         "version": 1,
         "fingerprint": "c436c7b527a862f85d269116bf4bf8a0ec7c1e4a21f55f65a52bf1f0bf0a94ff"
       }
+    },
+    {
+      "targetIds": [
+        "k1",
+        "k-recap",
+        "k-ref",
+        "ex1",
+        "q1"
+      ],
+      "reviewer": "1.3.0-maintainer-source-comparison",
+      "method": "本轮实际读取四份自编原文、生成小节、题设、字段及答案，修复后逐章核对。",
+      "result": "pass",
+      "evidence": "逐段对读general-source.txt、fusion-supplement.txt、fusion-reference.txt：三个标签字段、S01/S10冲突、课堂同编号异日期、缺失处理与仅参考旧模板一致；例题为原答案，练习1无原答案，当前AI参考答案明确标注且依原规则，不替代原题。",
+      "binding": {
+        "version": 1,
+        "fingerprint": "b57063959b8214278861001c6eb5fb01c0f616fab7f0ced5a012803366c55b2b"
+      }
+    },
+    {
+      "targetIds": [
+        "k-mean",
+        "k-mean-recap",
+        "q-mean",
+        "q-count",
+        "q-formula",
+        "q-table"
+      ],
+      "reviewer": "1.3.0-maintainer-source-comparison",
+      "method": "本轮实际读取四份自编原文、生成小节、题设、字段及答案，修复后逐章核对。",
+      "result": "pass",
+      "evidence": "对读measurement-source.txt及全部四题：首段已恢复对象、单位和测量口径一致的完整前提；有效次数n为正整数，缺失不作0且不计次，单位保留；(800+1000+1200)/3=1000、有效次数选项a、公式对照自评、D=900/E=1100平均1000与原文一致。总结保留同组有效观测要求。",
+      "binding": {
+        "version": 1,
+        "fingerprint": "512e7b0b7c6e84efef39291efc108f3ae46587d3068ebf2c7fe39f858b2cbfd3"
+      }
     }
   ],
   "taskContract": {
@@ -964,6 +999,466 @@
       "summaryNote": "回顾有效记录、次数与单位",
       "emphasisNote": "依据原文条件，不推测考试重点",
       "evidence": "原文定义、条件和练习分别进入对应小节或题目，章末回顾适用条件"
+    }
+  ],
+  "independentReview": {
+    "required": true,
+    "plan": {
+      "version": 1,
+      "algorithm": "chapter-source-kind-v1",
+      "producerId": "demo-author-context",
+      "minimumPerGroup": 1,
+      "extraItemIds": [],
+      "candidateCount": 11,
+      "universeFingerprint": "42486b720927423a22e28ae773aefbaf7bb388a8ab3c3a827a43eaa7a1486497",
+      "samples": [
+        {
+          "sampleId": "i1",
+          "sourceItemId": "i1",
+          "sourceId": "s1",
+          "locator": "第1页/1.1",
+          "chapterIds": [
+            "ch1"
+          ],
+          "chapterBasis": "mapped-or-explicit",
+          "targetIds": [
+            "k-recap",
+            "k1"
+          ],
+          "kind": "lesson",
+          "kindGroup": "teaching",
+          "reviewMode": "integrated",
+          "unresolvedMapping": false,
+          "sampleFingerprint": "de0b8644bd26a5c11ebc6e85983eeb16ad51ebbdefdb251628032d71d9455b0b"
+        },
+        {
+          "sampleId": "i2",
+          "sourceItemId": "i2",
+          "sourceId": "s1",
+          "locator": "第1页/例1-1",
+          "chapterIds": [
+            "ch1"
+          ],
+          "chapterBasis": "mapped-or-explicit",
+          "targetIds": [
+            "ex1",
+            "k-recap"
+          ],
+          "kind": "example",
+          "kindGroup": "question",
+          "reviewMode": "integrated",
+          "unresolvedMapping": false,
+          "sampleFingerprint": "38406b7127d132e3cc020f6944e4fde2604b1561ba7c20bf9103571fbc01f30f"
+        },
+        {
+          "sampleId": "i4",
+          "sourceItemId": "i4",
+          "sourceId": "s2",
+          "locator": "第1页/同编号案例",
+          "chapterIds": [
+            "ch1"
+          ],
+          "chapterBasis": "mapped-or-explicit",
+          "targetIds": [
+            "k-recap",
+            "k1"
+          ],
+          "kind": "lesson",
+          "kindGroup": "teaching",
+          "reviewMode": "integrated",
+          "unresolvedMapping": false,
+          "sampleFingerprint": "784dbf1eacb7bb46779e4ba4df5ad72dad46fb829069a961413d3c7a0b454be4"
+        },
+        {
+          "sampleId": "i5",
+          "sourceItemId": "i5",
+          "sourceId": "s3",
+          "locator": "第1页/旧模板",
+          "chapterIds": [
+            "ch1"
+          ],
+          "chapterBasis": "mapped-or-explicit",
+          "targetIds": [
+            "k-ref"
+          ],
+          "kind": "reference",
+          "kindGroup": "reference",
+          "reviewMode": "reference",
+          "unresolvedMapping": false,
+          "sampleFingerprint": "7acde57c9aa4e9981c6c07ee48cac31876626082882cbb422d5c74467dee95fd"
+        },
+        {
+          "sampleId": "i6",
+          "sourceItemId": "i6",
+          "sourceId": "s4",
+          "locator": "2.1与示例记录",
+          "chapterIds": [
+            "ch2"
+          ],
+          "chapterBasis": "mapped-or-explicit",
+          "targetIds": [
+            "k-mean",
+            "k-mean-recap"
+          ],
+          "kind": "lesson",
+          "kindGroup": "teaching",
+          "reviewMode": "integrated",
+          "unresolvedMapping": false,
+          "sampleFingerprint": "615e2d28e92f921b18587d3cbb7bd28c0a3eb80123b02a228cd680cec8daa7d3"
+        },
+        {
+          "sampleId": "i9",
+          "sourceItemId": "i9",
+          "sourceId": "s4",
+          "locator": "练习2-2",
+          "chapterIds": [
+            "ch2"
+          ],
+          "chapterBasis": "mapped-or-explicit",
+          "targetIds": [
+            "k-mean-recap",
+            "q-count"
+          ],
+          "kind": "exercise",
+          "kindGroup": "question",
+          "reviewMode": "integrated",
+          "unresolvedMapping": false,
+          "sampleFingerprint": "5d4864b7f7172845e9af9ac2b5b6b5c19683c8aae862d355d597cc71e7f1393d"
+        }
+      ],
+      "planFingerprint": "d808daae304a580978de747c9594fb3c92f3a1713f5702fe5925138d67dc2682"
+    },
+    "sourceRead": {
+      "reviewerId": "independent-demo-reviewer-130",
+      "contextMode": "fresh-source-first",
+      "packetFingerprint": "40df2ac2083f4e25250aa3837c3cfc8e832b6fd82031347d29c4a55b863302f2",
+      "observations": [
+        {
+          "sampleId": "i1",
+          "sourceId": "s1",
+          "locator": "第1页/1.1",
+          "expectedPoints": [
+            "教材是本章知识主线。标签至少记录样本代号、采集日期和观察者；这里是最低字段要求，不宜改写为只有这三个字段。",
+            "保留各字段的作用：代号连接实物与记录，日期区分采集批次，观察者便于核查。",
+            "未记录的信息应标为缺失，不得根据相邻记录猜测补填。",
+            "标签与登记表发生冲突时，应保留两份记录并回查采集笔记；冲突解决前不能合并为一个确定值。",
+            "本节重点应兼顾必要字段、缺失处理和冲突处理，不能只留下字段清单。"
+          ],
+          "evidence": "实读 staged/digital-textbook-html/tests/fixtures/general-source.txt 第4—5行（标题1.1及其完整段落）。第5行逐一给出字段、用途、缺失处理和冲突解决前的限制。对实际原文件计算SHA256为2dc18a77faebcf6d12a873a478c7e9d1ee42359f10370baab3f576403cb6075d，与来源包s1一致。"
+        },
+        {
+          "sampleId": "i2",
+          "sourceId": "s1",
+          "locator": "第1页/例1-1",
+          "expectedPoints": [
+            "保留完整题设：实物标签为S01，登记表为S10，其他信息相同；题目要求说明处理办法。",
+            "原资料解答的步骤是保留两种代号、标记冲突、回查采集笔记。",
+            "必须保留判断边界：仅凭其他信息相同，不能确定它们属于同一个样本；不能擅自选择一个代号或直接合并。",
+            "这是原资料已给解答的例题，应明确区分原题、原资料解答与可能新增的讲解。"
+          ],
+          "evidence": "实读 staged/digital-textbook-html/tests/fixtures/general-source.txt 第6行的例1-1题设与第7行标明的原资料解答。第7行直接要求保留两种代号并指出其他信息相同不足以判定同一样本。所属s1文件已按来源包核对SHA256。"
+        },
+        {
+          "sampleId": "i4",
+          "sourceId": "s2",
+          "locator": "第1页/同编号案例",
+          "expectedPoints": [
+            "保留课堂补充的具体对照：两件物品均标S01，一件采于3月1日，另一件采于4月1日。",
+            "编号需结合记录范围和采集批次辨识，相同编号本身不能证明是同一件物品。",
+            "日期缺失时仍须标为缺失并核查原笔记，不能按排列次序补填。",
+            "按用户资料用途将本例用于解释编号与批次的关系、补充教材主线；不把补充案例当作替代教材字段和冲突处理要求的新规则。"
+          ],
+          "evidence": "实读 staged/digital-textbook-html/tests/fixtures/fusion-supplement.txt 第1行全段，其中依次给出S01的两个日期、结合记录范围与批次辨识的原则，以及缺日期时的处理。对实际原文件计算SHA256为6509128a3e003e76a6c84f2abc5938a13ccb188ed528edff054eb980b3b02fc1，与来源包s2一致；来源包将s2用途限定为explanation。"
+        },
+        {
+          "sampleId": "i5",
+          "sourceId": "s3",
+          "locator": "第1页/旧模板",
+          "expectedPoints": [
+            "仅作存档对照，保留旧模板原貌：样本代号空栏和标注可留空的采集日期空栏。",
+            "应明确标示这是旧版模板、仅供对照；旧模板中的日期可留空不能被改造成现行学习要求。",
+            "现行学习要求以教材为准，不能因旧模板取消缺失标注和核查；旧模板所列字段也不能取代教材的必要字段清单。",
+            "不要求把这份对照材料作为新的教学主线或新练习，尤其不能据此鼓励无标注地保留空白。"
+          ],
+          "evidence": "实读 staged/digital-textbook-html/tests/fixtures/fusion-reference.txt 第1行：前半明确写出旧模板及采集日期可留空，后半明确说明仅保存旧貌、当前要求见教材且不得取消缺失标注与核查。对实际原文件计算SHA256为2cc4bea9689b44ff05eefafc52b482fd2063093ae745d49d3e4bf7ef5babc6fd，与来源包s3一致；来源包将本样本reviewMode标为reference。"
+        },
+        {
+          "sampleId": "i6",
+          "sourceId": "s4",
+          "locator": "2.1与示例记录",
+          "expectedPoints": [
+            "计算平均值的前提是对象、单位和测量口径一致，学习顺序应先核对记录、再计算。",
+            "算术平均值为各次有效观测值之和除以有效观测次数；保留公式x̄=(x₁+x₂+…+xₙ)/n。",
+            "n表示有效观测次数，必须是正整数；分子与分母必须使用同一组有效记录。",
+            "缺失值不能擅自记为0，也不能计入有效观测次数；平均值与原数据单位相同。",
+            "保留完整示例：A=800毫米、B=1000毫米、C=1200毫米，三次观测口径一致且均有效；总和3000毫米、n=3、平均值1000毫米。",
+            "应保留原文2.2的总结重点：核对对象、单位和口径，确定有效记录，分子分母对应同组记录，缺失不等于零，结果保留单位。"
+          ],
+          "evidence": "实读 staged/digital-textbook-html/examples/measurement-source.txt 第5—7行（2.1、定义条件、公式和完整示例）以及第8—9行（2.2本节总结）。第6行明确限制n为正整数并区分缺失与零，第9行明确分子分母同组有效记录。对实际原文件计算SHA256为53cd0d8cf05a52fabd928bdf5f90f524175445159a5d95f512fb526cf764ed77，与来源包s4一致。"
+        },
+        {
+          "sampleId": "i9",
+          "sourceId": "s4",
+          "locator": "练习2-2",
+          "expectedPoints": [
+            "保留单选题题干：平均值公式中的n表示什么。",
+            "保留三个选项及对应关系：A为有效观测次数，B为最大观测值，C为缺失记录数。",
+            "原资料答案为A，不能只保留字母而遗漏有效观测次数这一含义。",
+            "保留原资料解析：n与分子所加的有效观测值一一对应；说明有效次数和参与求和的有效观测必须匹配。",
+            "这是原文已有答案和解析的题目，应保留作答与对照自评所需的题干、选项、答案和解析，不把答案标作另行推导。"
+          ],
+          "evidence": "实读 staged/digital-textbook-html/examples/measurement-source.txt 第12行练习2-2全段，该行明确给出单选题型、完整题干、A/B/C三个选项、原资料答案A及一一对应的解析；第6行提供n定义的原文背景。所属s4文件已按来源包核对SHA256。"
+        }
+      ]
+    },
+    "records": [
+      {
+        "sampleId": "i1",
+        "reviewerId": "independent-demo-reviewer-130",
+        "contextMode": "fresh-source-first",
+        "planFingerprint": "d808daae304a580978de747c9594fb3c92f3a1713f5702fe5925138d67dc2682",
+        "sampleFingerprint": "de0b8644bd26a5c11ebc6e85983eeb16ad51ebbdefdb251628032d71d9455b0b",
+        "sourceReadFingerprint": "a1e39a6a6a82ee23d1e0d3673ae027bf58d54073073a46bac1f44a801a55cf16",
+        "result": "pass",
+        "checks": {
+          "sourceFidelity": "pass",
+          "explanation": "pass",
+          "summary": "pass",
+          "emphasis": "pass"
+        },
+        "evidence": "对读s1实际原文general-source.txt第4—5行、第一阶段i1观察与compare样本i1。sourceFidelity：k1.blocks[0]保留至少三个字段、各字段用途、缺失不得猜测以及冲突解决前不得合并，文字与原文一致；课堂材料在k1.blocks[1]单独以课堂案例引入，未替换教材要求。explanation：mappingLocations.explanationTargets=k1，正文用两个S01的日期差异解释多个字段共同提供核查线索，并保持缺日期时标缺失与回查的要求。summary：映射k-recap的三条列表分别涵盖必要字段、编号与批次、缺失与冲突处理，虽未重复各字段全部用途，但总结未改变主文条件。emphasis：同一k-recap突出字段和冲突处理，课堂案例承担编号辨识补充，符合ch1以教材为主的约定；映射均实际指向包内相应内容。",
+        "issues": []
+      },
+      {
+        "sampleId": "i2",
+        "reviewerId": "independent-demo-reviewer-130",
+        "contextMode": "fresh-source-first",
+        "planFingerprint": "d808daae304a580978de747c9594fb3c92f3a1713f5702fe5925138d67dc2682",
+        "sampleFingerprint": "38406b7127d132e3cc020f6944e4fde2604b1561ba7c20bf9103571fbc01f30f",
+        "sourceReadFingerprint": "a1e39a6a6a82ee23d1e0d3673ae027bf58d54073073a46bac1f44a801a55cf16",
+        "result": "pass",
+        "checks": {
+          "sourceFidelity": "pass",
+          "explanation": "pass",
+          "summary": "pass",
+          "emphasis": "pass"
+        },
+        "evidence": "对读s1实际原文general-source.txt第6—7行、第一阶段i2观察与compare样本i2。sourceFidelity：ex1.prompt[0]完整保留S01/S10、其他信息相同及说明处理办法的题设；ex1.answer.blocks[0]完整保留原资料解答，且answer.provenance=original、sourceRefs指向原资料解答。explanation：映射ex1的答案既列保留两种代号、标记冲突、回查采集笔记，又说明其他信息相同不足以确定为同一样本，题目采用对照自评与该说明题相符。summary：映射k-recap第三条概括冲突保留双方、核查前不猜测或静默合并，未与原答案相悖。emphasis：k-recap强调冲突处理，ex1答案保留不可凭其他相同信息认定同一样本的关键界限，契合ch1重点；映射目标均存在且内容可核对。",
+        "issues": []
+      },
+      {
+        "sampleId": "i4",
+        "reviewerId": "independent-demo-reviewer-130",
+        "contextMode": "fresh-source-first",
+        "planFingerprint": "d808daae304a580978de747c9594fb3c92f3a1713f5702fe5925138d67dc2682",
+        "sampleFingerprint": "784dbf1eacb7bb46779e4ba4df5ad72dad46fb829069a961413d3c7a0b454be4",
+        "sourceReadFingerprint": "a1e39a6a6a82ee23d1e0d3673ae027bf58d54073073a46bac1f44a801a55cf16",
+        "result": "pass",
+        "checks": {
+          "sourceFidelity": "pass",
+          "explanation": "pass",
+          "summary": "pass",
+          "emphasis": "pass"
+        },
+        "evidence": "对读s2实际原文fusion-supplement.txt第1行、第一阶段i4观察与compare样本i4。sourceFidelity：k1.blocks[1]保留两件S01及3月1日、4月1日的日期差异，保留不能直接认定同物、缺日期需标缺失并回查且不能按次序猜测；k-recap第二条补全记录范围与批次的辨识要求。explanation：映射k1将案例明确标作课堂案例，解释编号相同但范围或批次可能不同，并将多个字段与核查线索联系起来，符合s2仅用于补充解释的用途。summary：映射k-recap第二、三条分别压缩编号辨识、缺失与核查原则，保留原文要点。emphasis：同一总结将该例放在教材字段和冲突处理之间，未取代s1主线，重点仍是多字段核查而非仅记编号；全部指定映射均有对应内容。",
+        "issues": []
+      },
+      {
+        "sampleId": "i5",
+        "reviewerId": "independent-demo-reviewer-130",
+        "contextMode": "fresh-source-first",
+        "planFingerprint": "d808daae304a580978de747c9594fb3c92f3a1713f5702fe5925138d67dc2682",
+        "sampleFingerprint": "7acde57c9aa4e9981c6c07ee48cac31876626082882cbb422d5c74467dee95fd",
+        "sourceReadFingerprint": "a1e39a6a6a82ee23d1e0d3673ae027bf58d54073073a46bac1f44a801a55cf16",
+        "result": "pass",
+        "checks": {
+          "sourceFidelity": "pass",
+          "explanation": "pass",
+          "summary": "not-applicable",
+          "emphasis": "not-applicable"
+        },
+        "evidence": "对读s3实际原文fusion-reference.txt第1行、第一阶段i5观察与compare样本i5。sourceFidelity：k-ref.blocks[0]完整保留原文，包括样本代号空栏、采集日期可留空的旧式空栏，以及不能借旧模板取消缺失标注与核查的边界。explanation：mappingLocations.explanationTargets=k-ref，标题旧模板原文对照及正文仅保存旧模板原貌、当前学习要求见教材，明确体现reference用途，不会把旧模板提升为现行学习规则。summary与emphasis的映射为空，与reference模式一致，按要求记not-applicable；未以缺少融合总结为问题。",
+        "issues": []
+      },
+      {
+        "sampleId": "i6",
+        "reviewerId": "independent-demo-reviewer-130",
+        "contextMode": "fresh-source-first",
+        "planFingerprint": "d808daae304a580978de747c9594fb3c92f3a1713f5702fe5925138d67dc2682",
+        "sampleFingerprint": "615e2d28e92f921b18587d3cbb7bd28c0a3eb80123b02a228cd680cec8daa7d3",
+        "sourceReadFingerprint": "a1e39a6a6a82ee23d1e0d3673ae027bf58d54073073a46bac1f44a801a55cf16",
+        "result": "fail",
+        "checks": {
+          "sourceFidelity": "fail",
+          "explanation": "fail",
+          "summary": "pass",
+          "emphasis": "pass"
+        },
+        "evidence": "对读s4实际原文measurement-source.txt第5—9行、第一阶段i6观察与compare样本i6。sourceFidelity：原文第6行以对象、单位和测量口径一致为前提；k-mean.blocks[0]改为同类对象的测量记录，并只要求先确认单位和测量口径一致。同类对象并不保证对象一致，因此正文放宽了原文给定的计算条件。其余定义、有效次数正整数、缺失不当零且不计次、单位与800/1000/1200毫米示例及3000/3=1000均正确保留。explanation：映射k-mean的公式、表格和例算可相互印证，但首段把同类对象作为计算范围，容易引导学习者将不同对象的记录仅因同类而合并，需与原文条件对齐。summary：映射k-mean-recap的三条依次要求核对对象/单位/口径、分子分母同组有效记录、缺失非零并保留单位，忠实压缩第9行；不单独重述再确定有效记录未改变同组有效记录的要求。emphasis：同一总结仍突出先核对、有效记录一致、缺失和单位，符合ch2重点；所有映射目标存在，但总结的核对对象不能消除正文对对象条件的放宽。",
+        "issues": [
+          {
+            "aspect": "sourceFidelity",
+            "description": "k-mean.blocks[0]将原文measurement-source.txt第6行的对象一致改为同类对象，扩大了原文允许直接合并求平均的范围。应保留对象、单位和测量口径一致的完整前提；这里要求恢复条件含义，并非要求逐字复制。"
+          },
+          {
+            "aspect": "explanation",
+            "description": "k-mean首段的学习步骤仅明确核对单位和测量口径，没有让学习者核实对象一致，可能使不同对象的记录因属于同类就被合并。应在该讲解段直接补回对象一致的核对条件，使正文与原文和k-mean-recap一致。"
+          }
+        ]
+      },
+      {
+        "sampleId": "i9",
+        "reviewerId": "independent-demo-reviewer-130",
+        "contextMode": "fresh-source-first",
+        "planFingerprint": "d808daae304a580978de747c9594fb3c92f3a1713f5702fe5925138d67dc2682",
+        "sampleFingerprint": "5d4864b7f7172845e9af9ac2b5b6b5c19683c8aae862d355d597cc71e7f1393d",
+        "sourceReadFingerprint": "a1e39a6a6a82ee23d1e0d3673ae027bf58d54073073a46bac1f44a801a55cf16",
+        "result": "pass",
+        "checks": {
+          "sourceFidelity": "pass",
+          "explanation": "pass",
+          "summary": "pass",
+          "emphasis": "pass"
+        },
+        "evidence": "对读s4实际原文measurement-source.txt第12行及第6、9行背景、第一阶段i9观察与compare样本i9。sourceFidelity：q-count.prompt保留n表示什么的题干；parts[0].fields[0].options依次保留有效观测次数、最大观测值和缺失记录数，a/b/c值与原A/B/C对应；grading.rules[0].expected=a与原答案A一致，answer.provenance=original且来源指向练习2-2原资料答案。explanation：映射q-count的answer.blocks[0]同时写出应选有效观测次数以及它与分子有效观测值一一对应，保留答案含义和原解析，而非仅给字母。summary：映射k-mean-recap第二条明确分子分母同组有效记录，第三条缺失不等于零，与本题n的含义一致。emphasis：题名理解有效次数、原文解析和总结共同突出有效观测与计次相匹配，符合先辨识有效记录的约定；指定映射均存在。本条结论仅评价本题及其所列总结，不替代i6对讲解正文的审查。",
+        "issues": []
+      },
+      {
+        "sampleId": "i6",
+        "reviewerId": "independent-demo-reviewer-130",
+        "contextMode": "fresh-source-first",
+        "planFingerprint": "d808daae304a580978de747c9594fb3c92f3a1713f5702fe5925138d67dc2682",
+        "sampleFingerprint": "14fa132c0b04cfa6807c60454ad8814f8a8536385a0ce0206f5ec2088537163c",
+        "sourceReadFingerprint": "a1e39a6a6a82ee23d1e0d3673ae027bf58d54073073a46bac1f44a801a55cf16",
+        "result": "pass",
+        "checks": {
+          "sourceFidelity": "pass",
+          "explanation": "pass",
+          "summary": "pass",
+          "emphasis": "pass"
+        },
+        "evidence": "本次只复核compare-after-repair样本i6，重新对读实际measurement-source.txt第5—9行及有效的source-read中i6观察；实际原文SHA256仍为53cd0d8cf05a52fabd928bdf5f90f524175445159a5d95f512fb526cf764ed77。sourceFidelity：新包k-mean.blocks[0]现为先确认对象、单位和测量口径一致，再计算算术平均值，完整恢复原文第6行的三项前提，原先同类对象的放宽已消除；同段保留有效值求和除以有效次数、缺失既不作0也不计次。blocks[1]公式与blocks[2]的n为正整数共同保持定义和范围；blocks[2—4]保留单位、A/B/C为800/1000/1200毫米、和3000毫米、除以3及结果1000毫米，与原文第7行一致。explanation：映射k-mean先核对条件，再用表格与计算式解释平均值，条件、有效计数、示例数据与计算相互一致。summary：映射k-mean-recap的三条分别保留核对对象/单位/口径、分子分母同组有效记录、缺失非零和结果单位，概括原文第9行且不改变条件。emphasis：同一总结仍强调先核对和有效记录，而非只记公式；正文首段与总结现已一致，符合ch2先辨识有效记录与单位再计算的约定。explanationTargets=k-mean、summaryTargets与emphasisTargets=k-mean-recap均有可核对的目标正文。本次结论仅覆盖该新指纹的样本。",
+        "issues": []
+      },
+      {
+        "sampleId": "i9",
+        "reviewerId": "independent-demo-reviewer-130",
+        "contextMode": "fresh-source-first",
+        "planFingerprint": "d808daae304a580978de747c9594fb3c92f3a1713f5702fe5925138d67dc2682",
+        "sampleFingerprint": "d8c694a06f4763f286e08e8f8f092cd4af7b35279a128583188fcf31856270ff",
+        "sourceReadFingerprint": "a1e39a6a6a82ee23d1e0d3673ae027bf58d54073073a46bac1f44a801a55cf16",
+        "result": "pass",
+        "checks": {
+          "sourceFidelity": "pass",
+          "explanation": "pass",
+          "summary": "pass",
+          "emphasis": "pass"
+        },
+        "evidence": "本次只复核compare-after-repair样本i9，重新对读实际measurement-source.txt第12行及第6、9行背景、source-read中i9观察和新包所列目标。sourceFidelity：q-count.prompt完整保留n表示什么的题干；parts[0].fields[0].options中a/b/c依次是有效观测次数、最大观测值、缺失记录数，对应原A/B/C；grading.rules[0].expected=a与原答案A一致；answer.provenance=original并保留原资料答案来源。explanation：映射q-count的answer.blocks[0]写出应选有效观测次数及其与分子有效观测值一一对应的理由，含义与原解析一致。summary：重新核对映射k-mean-recap，第二条分子与分母使用同一组有效记录直接保留本题核心；其余两条核对对象/单位/口径、缺失非零和原单位与原文第9行相符。emphasis：题名理解有效次数、题目选项、答案解析和总结共同突出有效值与计数匹配，未因关联讲解修正而改变本题概念或答案；新包i6中的关联k-mean首段已恢复对象、单位和测量口径一致，未对n的含义引入新限制或冲突。explanationTargets=q-count、summaryTargets与emphasisTargets=k-mean-recap均存在。本结论仅覆盖新指纹的i9，不延用旧记录的时效状态。",
+        "issues": []
+      }
+    ]
+  },
+  "chapterChecks": [
+    {
+      "chapterId": "ch1",
+      "kind": "offline",
+      "result": "pass",
+      "reviewer": "浏览器自动检查 / Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+      "method": "file:// 断网环境中逐章、逐题打开；1440/390 像素核对章节小节、作答控件、公式、图片及横向布局。",
+      "evidence": "本章实际检查 3 个小节和 2 道题的页面结构与布局。实际输入并刷新恢复仅覆盖题目：q1。共享存储测试不扩展为本章所有题的完整作答验证；截图仅作全局可见范围核查。",
+      "checkedAt": "2026-11-12T10:28:58.727732+00:00",
+      "targetIds": [
+        "k1",
+        "k-recap",
+        "k-ref",
+        "ex1",
+        "q1"
+      ],
+      "checks": [
+        "all-routes-layout"
+      ],
+      "artifactSHA256": "0305b773546dfadeb445ff4cc2a2c02a0149d07385e8a29f022f1aa286e73ff5",
+      "binding": {
+        "version": 1,
+        "fingerprint": "2ed4dbacb87b29fe2b1662eb76828ae9cafaed5f39658485f076e3a1a325bab0",
+        "rendererFingerprint": "818a0a6a22f576ce03e6f8c7a6dc016df439a3c987651fd2c7691880637e0174"
+      }
+    },
+    {
+      "chapterId": "ch2",
+      "kind": "offline",
+      "result": "pass",
+      "reviewer": "浏览器自动检查 / Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+      "method": "file:// 断网环境中逐章、逐题打开；1440/390 像素核对章节小节、作答控件、公式、图片及横向布局。",
+      "evidence": "本章实际检查 2 个小节和 4 道题的页面结构与布局。实际输入并刷新恢复仅覆盖题目：q-count、q-formula、q-table。共享存储测试不扩展为本章所有题的完整作答验证；截图仅作全局可见范围核查。",
+      "checkedAt": "2026-11-12T10:28:58.727732+00:00",
+      "targetIds": [
+        "k-mean",
+        "k-mean-recap",
+        "q-count",
+        "q-formula",
+        "q-mean",
+        "q-table"
+      ],
+      "checks": [
+        "all-routes-layout"
+      ],
+      "artifactSHA256": "0305b773546dfadeb445ff4cc2a2c02a0149d07385e8a29f022f1aa286e73ff5",
+      "binding": {
+        "version": 1,
+        "fingerprint": "e8a66a2e256a7fbd3223b1e08311d58d21e6e0c1c109c9588928cefa9a32ec8d",
+        "rendererFingerprint": "818a0a6a22f576ce03e6f8c7a6dc016df439a3c987651fd2c7691880637e0174"
+      }
+    },
+    {
+      "chapterId": "ch1",
+      "kind": "visual",
+      "result": "pass",
+      "reviewer": "maintainer-visual-review-130",
+      "method": "Microsoft Edge 157，真实file://断网，1440及390像素页面布局检查；逐张查看两章完整截图。",
+      "evidence": "已检查本章所有学习小节的正文、列表、公式/表格（若有）、来源折叠和章首状态；文字与控件无重叠，公式清楚，未见全页横向溢出。此条仅覆盖章节阅读，不扩展到本章所有题目的作答页面。",
+      "checkedAt": "2026-11-12T10:28:58.730703+00:00",
+      "targetIds": [
+        "k1",
+        "k-recap",
+        "k-ref"
+      ],
+      "checks": [
+        "chapter-reading-desktop-and-narrow",
+        "visible-formula-table-and-text",
+        "chapter-header-hierarchy"
+      ],
+      "artifactSHA256": "0305b773546dfadeb445ff4cc2a2c02a0149d07385e8a29f022f1aa286e73ff5",
+      "binding": {
+        "version": 1,
+        "fingerprint": "2ed4dbacb87b29fe2b1662eb76828ae9cafaed5f39658485f076e3a1a325bab0",
+        "rendererFingerprint": "818a0a6a22f576ce03e6f8c7a6dc016df439a3c987651fd2c7691880637e0174"
+      }
+    },
+    {
+      "chapterId": "ch2",
+      "kind": "visual",
+      "result": "pass",
+      "reviewer": "maintainer-visual-review-130",
+      "method": "Microsoft Edge 157，真实file://断网，1440及390像素页面布局检查；逐张查看两章完整截图。",
+      "evidence": "已检查本章所有学习小节的正文、列表、公式/表格（若有）、来源折叠和章首状态；文字与控件无重叠，公式清楚，未见全页横向溢出。此条仅覆盖章节阅读，不扩展到本章所有题目的作答页面。",
+      "checkedAt": "2026-11-12T10:28:58.731931+00:00",
+      "targetIds": [
+        "k-mean",
+        "k-mean-recap"
+      ],
+      "checks": [
+        "chapter-reading-desktop-and-narrow",
+        "visible-formula-table-and-text",
+        "chapter-header-hierarchy"
+      ],
+      "artifactSHA256": "0305b773546dfadeb445ff4cc2a2c02a0149d07385e8a29f022f1aa286e73ff5",
+      "binding": {
+        "version": 1,
+        "fingerprint": "e8a66a2e256a7fbd3223b1e08311d58d21e6e0c1c109c9588928cefa9a32ec8d",
+        "rendererFingerprint": "818a0a6a22f576ce03e6f8c7a6dc016df439a3c987651fd2c7691880637e0174"
+      }
     }
   ]
 }
