@@ -1,15 +1,14 @@
 {
   "name": "digital-textbook-html",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "contentSchemaVersion": 2,
   "backupFormatVersion": 1,
   "personalPreferencesVersion": 2,
   "privateCourseMaterialsIncluded": false,
   "changes": [
-    "Report exact packaged resource bytes with configurable warning and hard limits.",
-    "Provide explicit, non-overwriting image optimization with preserved provenance.",
-    "Show usable chapter ranges and scoped readiness without manufacturing validation.",
-    "Add Windows offline browser acceptance with versioned public fixtures."
+    "Export versioned mistake notebooks as Markdown, CSV and independent offline review HTML.",
+    "Estimate work with explicit assumptions and calibrate against actual usage records.",
+    "Check declared accounting, statistical and matrix relationships without changing learner grading."
   ],
   "supportedContentSchemaVersions": [
     1,

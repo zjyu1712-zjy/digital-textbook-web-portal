@@ -11,6 +11,7 @@
   const storageKey = 'shuye-conversion-tasks-v1';
   const terminal = new Set(['ready', 'needs_attention', 'failed', 'cancelled', 'interrupted']);
   const stageLabels = {
+    estimating: '估算处理量',
     queued: '等待处理', running: '正在处理', extracting: '读取资料', inventory: '核对资料清单',
     planning: '确定学习结构', generating: '构建教材内容', reviewing: '核查内容与来源', sampling: '独立抽样对读',
     validating: '检查与打包', testing: '检验学习页面', ready: '可以下载',
@@ -347,6 +348,7 @@
     byId('progress-steps').replaceChildren();
     byId('event-list').replaceChildren();
     byId('job-checks').hidden = true;
+    byId('work-estimate').hidden = true;
     byId('no-events').hidden = false;
     byId('job-expiry').textContent = '';
     ['download-job', 'retry-job', 'cancel-job'].forEach(id => { byId(id).hidden = true; });
@@ -380,10 +382,47 @@
     }
   }
   function progressIndex(stage) {
-    const mapped = { inventory: 'extracting', testing: 'validating', running: 'extracting' }[stage] || stage;
+    const mapped = { inventory: 'extracting', estimating: 'extracting', testing: 'validating', running: 'extracting' }[stage] || stage;
     return progress.findIndex(([key]) => key === mapped);
   }
+  function renderEstimate(estimate) {
+    byId('work-estimate').hidden = !estimate;
+    if (!estimate) return;
+    const known = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+    const integer = value => known(value) ? value.toLocaleString('zh-CN') : '待确定';
+    const range = (value, digits = 0) => {
+      if (!value || !known(value.low)) return '未知';
+      const format = n => n.toLocaleString('zh-CN', { maximumFractionDigits: digits });
+      if (!known(value.high)) return `至少 ${format(value.low)}，上限待确定`;
+      return value.low === value.high ? format(value.low) : `${format(value.low)}–${format(value.high)}`;
+    };
+    const scope = estimate.scope || {};
+    const calls = estimate.calls || {};
+    byId('estimate-phase').textContent = `${estimate.phase || '当前阶段'}${estimate.testDouble ? ' · 测试数据，非真实用量' : ''}`;
+    byId('estimate-counts').replaceChildren(...[
+      ['页或文字段', scope.pageCount], ['章节', scope.chapterCount], ['处理单元', scope.unitCount], ['抽检样本', scope.sampleCount]
+    ].map(([label, count]) => { const node = el('div'); node.append(el('strong', '', integer(count)), el('span', '', label)); return node; }));
+    byId('estimate-range').textContent = `本阶段剩余成功回复：${range(calls.successfulResponses)}。计入最多三次连接尝试后，请求次数：${range(calls.networkAttempts)}。`;
+    byId('estimate-budget').textContent = `已请求 ${integer(calls.spentModelCalls)} 次 / 任务限额 ${integer(calls.maxModelCalls)} 次，尚余 ${integer(calls.availableModelCalls)} 次。失败和重试计入限额，读取已有缓存不占调用次数。`;
+    const metrics = estimate.metrics || {};
+    const duration = metrics.elapsedSeconds?.status === 'conditional' ? `${range(metrics.elapsedSeconds, 1)} 秒` : '未知';
+    const tokenRange = metrics.inputTokens?.status === 'conditional' && metrics.outputTokens?.status === 'conditional'
+      ? `输入 ${range(metrics.inputTokens)} / 输出 ${range(metrics.outputTokens)}` : '未知';
+    const cost = estimate.priceSupplied && metrics.cost?.status === 'conditional'
+      ? `${range(metrics.cost, 6)} ${metrics.cost.currency || ''}（按显式单价计算）` : '未知';
+    byId('estimate-metrics').textContent = `剩余成功请求的条件估计：模型用时 ${duration}；tokens ${tokenRange}；费用 ${cost}。${estimate.calibrated ? '依据已提供或已记录的阶段样本，样本范围不是保证。' : '尚无完整阶段基线，不推测分钟数、tokens 或费用。'}`;
+    const usage = estimate.usage || {};
+    const outcomes = usage.outcomes || {};
+    const total = usage.totals?.totalTokens;
+    const measured = total && known(total.knownTotal) ? `${integer(total.knownTotal)}${total.complete ? '' : '（只含已知部分）'}` : '未知';
+    byId('estimate-history').textContent = `已记录成功 ${integer(outcomes.success)} 次、失败 ${integer(outcomes.failed)} 次、缓存命中 ${integer(outcomes.cacheHits)} 次；已知 tokens ${measured}。${known(usage.unclassifiedAttempts) && usage.unclassifiedAttempts > 0 ? `另有 ${integer(usage.unclassifiedAttempts)} 次请求结果未完整记录。` : ''}`;
+    byId('estimate-note').textContent = '按真实页数、单元和样本更新；每单元最多涉及 8 个原页。调用估算不会发起模型请求。用时不含排队、本地构建、浏览器检查和失败重试，不是完成倒计时。重试会重新校验资料与页面，仍匹配的模型回复可复用。';
+    const warning = calls.limitAssessment === 'below-minimum' ? '当前剩余额度低于本阶段完成流程的最低调用量；达到限额时会保留检查点并暂停。'
+      : calls.limitAssessment === 'may-stop-before-worst-case' ? '章节或样本尚未确定，或修复重试较多时，可能达到本任务调用限额。' : '';
+    showMessage('estimate-warning', warning);
+  }
   function renderJob(job) {
+    renderEstimate(job.estimate);
     const stopped = terminal.has(job.status) && job.status !== 'ready';
     const stage = job.status === 'ready' ? 'ready' : (job.stage || job.status);
     byId('job-title').textContent = job.title || '你的学习教材';

@@ -8,6 +8,7 @@ from grading import validate_grading
 from independent_audit import create_plan,review_packet,audit_independent
 from chapter_status import chapter_binding,chapter_status,validate_chapter_checks,validate_learning_scope
 from resource_budget import analyze_html,enforce_budget,ResourceBudgetExceeded
+from discipline_checks import report_discipline_checks,validate_discipline_checks
 SKILL=Path(__file__).resolve().parents[1]
 MODES={'textbook','slides','outline','combined'}
 DISCIPLINES={'math','theory','models','accounting','statistics','general'}
@@ -33,6 +34,13 @@ def all_blocks(d):
   yield from walk_blocks(q.get('prompt',[]));yield from walk_blocks(q.get('answer',{}).get('blocks',[]))
  for e in d.get('exams',[]):yield from walk_blocks(e.get('instructions',[]))
 def substantive(bs):return any(b.get('text','').strip() or any(r.get('text')or r.get('tex')for r in b.get('runs',[])) or b.get('tex') or b.get('rows') or b.get('items') or b.get('path') or b.get('lines') for b in walk_blocks(bs) if b.get('type')!='heading')
+def block_shape_error(b):
+ t=b.get('type');rows=b.get('rows')
+ if t=='matrix'and(not isinstance(rows,list)or not rows or any(not isinstance(r,list)or not r for r in rows)or len({len(r)for r in rows})!=1):return 'ragged matrix'
+ if t=='table':
+  columns=b.get('columns')
+  if not isinstance(columns,list)or not columns or not isinstance(rows,list)or any(not isinstance(r,list)or len(r)!=len(columns)for r in rows):return 'table column count mismatch'
+ return None
 def validate(d,inv):
  e=[];ids={};targets={};questions={};sources={s.get('id'):s for s in d.get('sources',[])}
  def ident(o,kind):
@@ -94,10 +102,10 @@ def validate(d,inv):
   if t=='math'and not b.get('tex'):e.append('empty formula')
   if t=='paragraph'and 'runs'in b:
    if not isinstance(b['runs'],list)or any(r.get('type')not in ('text','math')or not r.get('text'if r.get('type')=='text'else'tex')for r in b['runs']):e.append('invalid inline paragraph')
-  if t=='matrix'and(not b.get('rows')or len({len(r)for r in b['rows']})!=1):e.append('ragged matrix')
+  shape_error=block_shape_error(b)
+  if shape_error:e.append(shape_error)
   if t=='image'and(not b.get('alt')or not b.get('path')or re.match(r'^(?:\w+:|//)',b.get('path',''))):e.append('image requires local path and alt')
   if t=='image'and d.get('schemaVersion')==2 and not re.fullmatch(r'[0-9a-f]{64}',str(b.get('sha256',''))):e.append('v2 image requires actual sha256 digest')
-  if t=='table'and(not b.get('columns')or any(len(r)!=len(b['columns'])for r in b.get('rows',[]))):e.append('table column count mismatch')
  for ex in d.get('exams',[]):
   ident(ex,'exam')
   if not ex.get('questionIds')or any(x not in questions or questions[x]['origin']!='exam'for x in ex['questionIds']):e.append('exam membership invalid')
@@ -127,6 +135,7 @@ def validate(d,inv):
   e.extend(audit_reviews(d,inv)['errors'])
  e.extend(validate_chapter_checks(d,inv))
  e.extend(validate_learning_scope(d))
+ e.extend(validate_discipline_checks(d))
  independent=d.get('independentReview')
  required=isinstance(independent,dict)and independent.get('required')is True
  if isinstance(independent,dict)and 'required'in independent and type(independent['required'])is not bool:e.append('independentReview.required must be boolean')
@@ -135,7 +144,7 @@ def validate(d,inv):
  if sampled['status']in ('failed','invalid','stale')or(required and sampled['status']!='sampled-pass'):e.append('independent review: '+sampled['status'])
  return list(dict.fromkeys(e))
 def checkpoint(d):
- shared={k:d.get(k)for k in ['organization','taskContract','disciplines','sources','edition','preferencesVersion']}
+ shared={k:d.get(k)for k in ['organization','taskContract','disciplines','disciplineChecks','sources','edition','preferencesVersion']}
  return {c['id']:hashlib.sha256(stable({'shared':shared,'chapter':c,'questions':[q for q in d.get('questions',[])if c['id']in q['chapterIds']]}).encode()).hexdigest()for c in d['chapters']}
 def changed(a,b):return sorted(k for k in a.keys()|b.keys()if a.get(k)!=b.get(k))
 def math_expressions(d):
@@ -144,7 +153,9 @@ def math_expressions(d):
   elif b['type']=='paragraph':
    for run in b.get('runs',[]):
     if run['type']=='math':yield run['tex']
-  elif b['type']=='matrix':yield r'\begin{pmatrix}'+r'\\'.join('&'.join(str(c)for c in row)for row in b['rows'])+r'\end{pmatrix}'
+  elif b['type']=='matrix':
+   if block_shape_error(b):raise ValueError('matrix has invalid rows; repair its shape before formula validation')
+   yield r'\begin{pmatrix}'+r'\\'.join('&'.join(str(c)for c in row)for row in b['rows'])+r'\end{pmatrix}'
 def inspect_html(path):
  class Check(HTMLParser):
   def __init__(self):super().__init__();self.errors=[]
@@ -175,8 +186,10 @@ def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None,*,warn
  if size_report is not None and Path(size_report).resolve()==Path(dest).resolve():raise ValueError('体积报告不能与HTML使用同一路径')
  d=copy.deepcopy(data);errors=validate(d,inventory)
  if errors and not allow_incomplete:raise ValueError('\n'.join(errors))
+ shape_errors=[block_shape_error(b)for b in all_blocks(d)if block_shape_error(b)]
+ if shape_errors:raise ValueError('内容块无法显示，请先修复行列结构：'+', '.join(dict.fromkeys(shape_errors)))
  if errors:d['scope']['completeness']='incomplete'
- d['validation']={'structuralErrors':errors,'sourceItems':len(inventory['items']),'counts':{k:sum(q['origin']==k for q in d['questions'])for k in sorted(ORIGINS)},'assurance':audit_reviews(d,inventory),'independent':audit_independent(d,inventory),'chapterStatus':chapter_status(d,inventory),'note':'结构和审校时效验证不证明学术正确；语义核查仍须实际对读。'};d['sourceInventory']=inventory
+ d['validation']={'structuralErrors':errors,'sourceItems':len(inventory['items']),'counts':{k:sum(q['origin']==k for q in d['questions'])for k in sorted(ORIGINS)},'assurance':audit_reviews(d,inventory),'independent':audit_independent(d,inventory),'disciplineChecks':report_discipline_checks(d),'chapterStatus':chapter_status(d,inventory),'note':'结构和审校时效验证不证明学术正确；语义核查仍须实际对读。'};d['sourceInventory']=inventory
  expressions=list(math_expressions(d))
  if expressions:
   n=node or os.environ.get('NODE_BINARY')or shutil.which('node')
@@ -195,9 +208,8 @@ def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None,*,warn
    if mime not in ('image/png','image/jpeg','image/webp','image/gif'):raise ValueError('image must be local raster; use structured diagram for SVG')
    if d.get('schemaVersion')==2 and sha(p)!=b.get('sha256'):raise ValueError('image content changed: update image sha256 and re-review '+str(b['path']))
    b['data']='data:'+mime+';base64,'+base64.b64encode(p.read_bytes()).decode()
- css=embedded_math_css()
  payload=json.dumps(d,ensure_ascii=False,separators=(',',':')).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026')
- values={'TITLE':html.escape(d['title']),'CSS':css+'\n'+'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['style.css','mistakes.css','quality.css']),'DATA':payload,'JS':'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['vendor/katex.min.js','storage.js','grading.js','mistakes.js','quality.js','app.js'])}
+ values={'TITLE':html.escape(d['title']),'MATH_CSS':embedded_math_css(),'MATH_JS':(SKILL/'assets/vendor/katex.min.js').read_text(encoding='utf-8'),'CSS':'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['style.css','mistakes.css','quality.css']),'DATA':payload,'JS':'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['storage.js','grading.js','mistakes.js','mistake_review.js','mistake_exports.js','quality.js','app.js'])}
  shell=(SKILL/'assets/shell.html').read_text(encoding="utf-8")
  for k,v in values.items():shell=shell.replace('@@'+k+'@@',v)
  resources=analyze_html(shell,warning_bytes=warning_bytes,limit_bytes=limit_bytes)
@@ -261,7 +273,7 @@ def main():
   elif args.cmd=='chapter-state':
    report=chapter_status(read(args.course),read(args.inventory));write(args.out,report);print(json.dumps({'chapters':len(report['chapters']),'errors':report['errors'],'note':report['note']},ensure_ascii=False));return bool(report['errors'])
   elif args.cmd=='validate':
-   d=read(args.course);inv=read(args.inventory);e=validate(d,inv);write(args.out,{'errors':e,'structuralPass':not e,'assurance':audit_reviews(d,inv),'independent':audit_independent(d,inv),'chapterStatus':chapter_status(d,inv),'semanticMeaning':'结构及审校时效通过不等于学术正确；旧v1自由文本记录不证明本轮审校完成'});print(json.dumps({'errors':e},ensure_ascii=False));return bool(e)
+   d=read(args.course);inv=read(args.inventory);e=validate(d,inv);write(args.out,{'errors':e,'structuralPass':not e,'assurance':audit_reviews(d,inv),'independent':audit_independent(d,inv),'disciplineChecks':report_discipline_checks(d),'chapterStatus':chapter_status(d,inv),'semanticMeaning':'结构及审校时效通过不等于学术正确；旧v1自由文本记录不证明本轮审校完成'});print(json.dumps({'errors':e},ensure_ascii=False));return bool(e)
   elif args.cmd=='build':
    report_path=args.size_report or args.out+'.size.json'
    inputs={Path(args.course).resolve(),Path(args.inventory).resolve()}

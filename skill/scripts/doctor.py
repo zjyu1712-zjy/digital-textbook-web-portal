@@ -14,8 +14,8 @@ SKILL = Path(__file__).resolve().parents[1]
 REQUIRED_FILES = (
     "SKILL.md", "scripts/pipeline.py", "scripts/check_math.cjs",
     "scripts/task_contract.py", "scripts/review_audit.py",
-    "scripts/grading.py", "assets/grading.js", "scripts/independent_audit.py", "scripts/chapter_status.py", "scripts/resource_budget.py",
-    "assets/mistakes.js", "assets/mistakes.css", "assets/quality.js", "assets/quality.css",
+    "scripts/grading.py", "assets/grading.js", "scripts/independent_audit.py", "scripts/chapter_status.py", "scripts/resource_budget.py", "scripts/discipline_checks.py", "scripts/estimate_work.py",
+    "assets/mistakes.js", "assets/mistake_exports.js", "assets/mistake_review.js", "assets/mistakes.css", "assets/quality.js", "assets/quality.css",
     "assets/shell.html", "assets/style.css", "assets/storage.js", "assets/app.js",
     "assets/vendor/katex.min.js", "assets/vendor/katex.min.css",
     "references/schema.md", "references/quality.md", "references/preferences.md",

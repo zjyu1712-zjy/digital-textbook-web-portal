@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: zjyu1712-zjy/digital-textbook-html
-          ref: e9a68b9d5d4433574c79986e521061cfe993fea5 # v1.3.0
+          ref: 101a7233951d00dab479dfcba51325a9ec25b6d8 # v1.4.0
           path: previous-skill
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0

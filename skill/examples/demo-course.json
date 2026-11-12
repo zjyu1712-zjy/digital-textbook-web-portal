@@ -1659,6 +1659,129 @@
         "fingerprint": "76f2bffb920f7802ec0d6024bee880152fb11d253e97b0cbebd6141e5eabd27e",
         "rendererFingerprint": "9f098f77341bace389c3132c7eebda7946ab8710444fbdb46ddfb361a2e8dfb0"
       }
+    },
+    {
+      "chapterId": "ch1",
+      "kind": "offline",
+      "result": "pass",
+      "reviewer": "maintainer-offline-review-150 / 浏览器自动检查 / Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+      "method": "file:// 断网环境中逐章、逐题打开；1440/390 像素核对章节小节、作答控件、公式、图片及横向布局。",
+      "evidence": "本章实际检查 3 个小节和 2 道题的页面结构与布局。实际输入并刷新恢复仅覆盖题目：q1。共享存储测试不扩展为本章所有题的完整作答验证；截图仅作全局可见范围核查。",
+      "checkedAt": "2026-11-12T11:23:21.987839+00:00",
+      "targetIds": [
+        "k1",
+        "k-recap",
+        "k-ref",
+        "ex1",
+        "q1"
+      ],
+      "checks": [
+        "all-routes-layout"
+      ],
+      "artifactSHA256": "038121f81796042b604f053805a7d426ca52f47fbe3134d98b2d8639ba65b256",
+      "binding": {
+        "version": 1,
+        "fingerprint": "6e47e73747216f084ce8555b91ca6b8fd28a0d6981a3dfd643a77a72e8fa70f5",
+        "rendererFingerprint": "7a3aedf95245195e03f484a41fd11f8ad651d9112215d59150322fb78df7a0f8"
+      }
+    },
+    {
+      "chapterId": "ch2",
+      "kind": "offline",
+      "result": "pass",
+      "reviewer": "maintainer-offline-review-150 / 浏览器自动检查 / Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+      "method": "file:// 断网环境中逐章、逐题打开；1440/390 像素核对章节小节、作答控件、公式、图片及横向布局。",
+      "evidence": "本章实际检查 2 个小节和 4 道题的页面结构与布局。实际输入并刷新恢复仅覆盖题目：q-count、q-formula、q-table。共享存储测试不扩展为本章所有题的完整作答验证；截图仅作全局可见范围核查。",
+      "checkedAt": "2026-11-12T11:23:21.987839+00:00",
+      "targetIds": [
+        "k-mean",
+        "k-mean-recap",
+        "q-count",
+        "q-formula",
+        "q-mean",
+        "q-table"
+      ],
+      "checks": [
+        "all-routes-layout"
+      ],
+      "artifactSHA256": "038121f81796042b604f053805a7d426ca52f47fbe3134d98b2d8639ba65b256",
+      "binding": {
+        "version": 1,
+        "fingerprint": "f72f2a58010acc62b9915fb585e932b20f60741727eb23662bd2ada2d57faa57",
+        "rendererFingerprint": "7a3aedf95245195e03f484a41fd11f8ad651d9112215d59150322fb78df7a0f8"
+      }
+    },
+    {
+      "chapterId": "ch1",
+      "kind": "visual",
+      "result": "pass",
+      "reviewer": "maintainer-visual-review-150",
+      "checkedAt": "2026-11-12T11:23:21.991956+00:00",
+      "targetIds": [
+        "k1",
+        "k-recap",
+        "k-ref"
+      ],
+      "checks": [
+        "chapter-reading-desktop-and-narrow",
+        "visible-formula-table-and-text",
+        "chapter-header-hierarchy"
+      ],
+      "method": "在真实 file:// 断网示例上，逐张查看 1440 和 390 像素完整章节截图；第二章另外查看学科状态面板的可见视口。",
+      "evidence": "已目视检查本章所列学习小节的正文、列表、公式/表格（若有）、来源折叠与章首层次，未见遮挡或内容横向溢出。仅覆盖章节阅读，不扩展为题目作答页面或全文语义核验。截图校验：[{\"file\":\"demo-quality-preliminary/complete-ch1-1440.png\",\"sha256\":\"6b841e10dc22d000fee1fe4cdca97030ad55e56ec520d1585a20f942bd04ed67\"},{\"file\":\"demo-quality-preliminary/complete-ch1-390.png\",\"sha256\":\"b6e566b4f095363d3b9fb3bb9c47164eb2fd6ea96b90134fc89586d8c7b97c73\"}]",
+      "artifactSHA256": "038121f81796042b604f053805a7d426ca52f47fbe3134d98b2d8639ba65b256",
+      "binding": {
+        "version": 1,
+        "fingerprint": "6e47e73747216f084ce8555b91ca6b8fd28a0d6981a3dfd643a77a72e8fa70f5",
+        "rendererFingerprint": "7a3aedf95245195e03f484a41fd11f8ad651d9112215d59150322fb78df7a0f8"
+      }
+    },
+    {
+      "chapterId": "ch2",
+      "kind": "visual",
+      "result": "pass",
+      "reviewer": "maintainer-visual-review-150",
+      "checkedAt": "2026-11-12T11:23:21.993973+00:00",
+      "targetIds": [
+        "k-mean",
+        "k-mean-recap"
+      ],
+      "checks": [
+        "chapter-reading-desktop-and-narrow",
+        "visible-formula-table-and-text",
+        "chapter-header-hierarchy"
+      ],
+      "method": "在真实 file:// 断网示例上，逐张查看 1440 和 390 像素完整章节截图；第二章另外查看学科状态面板的可见视口。",
+      "evidence": "已目视检查本章所列学习小节的正文、列表、公式/表格（若有）、来源折叠与章首层次，未见遮挡或内容横向溢出。仅覆盖章节阅读，不扩展为题目作答页面或全文语义核验。截图校验：[{\"file\":\"demo-quality-preliminary/complete-ch2-1440.png\",\"sha256\":\"bc031dd0c225b27de6b78c364c74326fc8ee1ac39d4b9d8e17d225501477950a\"},{\"file\":\"demo-quality-preliminary/complete-ch2-390.png\",\"sha256\":\"fbe6cdfc218fe272d5c618931f1520286873e5aea164b5d41b1cd05722e6ce5e\"},{\"file\":\"demo-quality-preliminary/status-ch2-1440.png\",\"sha256\":\"615d989969c7f3e0d697a7443e6897024d7e1d0285a1fcf93d8b6ffab2262e4b\"},{\"file\":\"demo-quality-preliminary/status-ch2-390.png\",\"sha256\":\"94aca9d6436a7275ce2013dfcefae627b739cb6aa7c7a55d62afd32a2a62a272\"}]",
+      "artifactSHA256": "038121f81796042b604f053805a7d426ca52f47fbe3134d98b2d8639ba65b256",
+      "binding": {
+        "version": 1,
+        "fingerprint": "f72f2a58010acc62b9915fb585e932b20f60741727eb23662bd2ada2d57faa57",
+        "rendererFingerprint": "7a3aedf95245195e03f484a41fd11f8ad651d9112215d59150322fb78df7a0f8"
+      }
+    }
+  ],
+  "disciplineChecks": [
+    {
+      "id": "measurement-sum",
+      "kind": "table_sum",
+      "description": "核对原文所列800、1000、1200毫米合计3000毫米。",
+      "target": {
+        "targetId": "k-mean",
+        "area": "blocks",
+        "blockPath": [
+          3
+        ]
+      },
+      "axis": "column",
+      "index": 1,
+      "indices": [
+        0,
+        1,
+        2
+      ],
+      "expected": "3000",
+      "tolerance": "0"
     }
   ]
 }

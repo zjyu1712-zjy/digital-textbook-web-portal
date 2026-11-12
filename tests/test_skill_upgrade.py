@@ -201,6 +201,9 @@ class UpgradeTests(unittest.TestCase):
         legacy = {'model':self.config.model,'stage':'same','instructions':'same rules','data':{},'images':[]}
         key = hashlib.sha256(json.dumps(legacy,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
         (cache / (key + '.json')).write_text(json.dumps({'result':{'legacy':True}}))
+        # Historical caches must retain their budget ledger. A missing ledger is
+        # tested separately and must never reset the task's consumed calls.
+        (self.root / 'model-usage.json').write_text(json.dumps({'calls': 1, 'usage': []}))
         class Opener:
             def open(self, request, timeout):
                 return io.BytesIO(json.dumps({'status':'completed','output':[{'type':'message','content':[{'type':'output_text','text':'{"new":true}'}]}]}).encode())
@@ -209,6 +212,7 @@ class UpgradeTests(unittest.TestCase):
             self.assertEqual(client.ask('same','same rules',{}), {'new':True})
             self.assertEqual(call.call_count, 1)
         self.assertTrue((cache / (key + '.json')).exists())
+        self.assertEqual(json.loads((self.root / 'model-usage.json').read_text())['calls'], 2)
 
 
 if __name__ == '__main__':

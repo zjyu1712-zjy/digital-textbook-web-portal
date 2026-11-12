@@ -33,6 +33,8 @@ class Config:
     min_free_bytes: int = 128 * 1024 * 1024
     provider: str = "openai"
     bailian_workspace_id: str = ""
+    estimation_calibration_file: str = ""
+    estimation_prices_file: str = ""
 
     def __post_init__(self):
         if self.provider not in {"openai", "bailian"}:
@@ -61,7 +63,7 @@ class Config:
     def from_env(cls):
         provider = os.environ.get("PORTAL_MODEL_PROVIDER", "openai")
         fields = {"provider": provider}
-        env_names = {"data_dir": "PORTAL_DATA_DIR", "skill_dir": "PORTAL_SKILL_DIR", "public_origin": "PORTAL_PUBLIC_ORIGIN", "access_code": "PORTAL_ACCESS_CODE"}
+        env_names = {"data_dir": "PORTAL_DATA_DIR", "skill_dir": "PORTAL_SKILL_DIR", "public_origin": "PORTAL_PUBLIC_ORIGIN", "access_code": "PORTAL_ACCESS_CODE", "estimation_calibration_file": "PORTAL_ESTIMATION_CALIBRATION_FILE", "estimation_prices_file": "PORTAL_ESTIMATION_PRICES_FILE"}
         if provider == "bailian":
             env_names.update(api_key="DASHSCOPE_API_KEY", model="DASHSCOPE_MODEL", bailian_workspace_id="DASHSCOPE_WORKSPACE_ID")
         else:

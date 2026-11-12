@@ -4,15 +4,42 @@ import binascii
 import hashlib
 import json
 import re
+from html.parser import HTMLParser
 
 
 MIB = 1024 * 1024
 DEFAULT_WARNING_BYTES = 60 * MIB
 DEFAULT_LIMIT_BYTES = 100 * MIB
 _URI = re.compile(rb'data:(image/[A-Za-z0-9.+-]+|font/[A-Za-z0-9.+-]+|application/(?:font-woff|vnd\.ms-fontobject));base64,([^\s\"\'<>)]*)')
-_SCRIPT = re.compile(rb'<script\b([^>]*)>(.*?)</script\s*>', re.I | re.S)
-_STYLE = re.compile(rb'<style\b[^>]*>(.*?)</style\s*>', re.I | re.S)
-_COURSE_ID = re.compile(rb'(?<![-:\w])id\s*=\s*[\"\']course-data[\"\']', re.I)
+
+def _raw_regions(raw):
+    # Latin-1 gives one character per byte; actual payloads remain UTF-8 bytes.
+    # HTMLParser respects script/style raw text and ignores tags inside comments.
+    offsets = [0]
+    for match in re.finditer(b'\n', raw):
+        offsets.append(match.end())
+    class Regions(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=False)
+            self.current = None
+            self.regions = []
+        def byte_position(self):
+            line, column = self.getpos()
+            return offsets[line - 1] + column
+        def handle_starttag(self, tag, attrs):
+            if tag in ('script', 'style'):
+                kind = 'styles' if tag == 'style' else ('courseData' if dict(attrs).get('id') == 'course-data' else 'scripts')
+                self.current = (tag, self.byte_position() + len(self.get_starttag_text()), kind)
+        def handle_endtag(self, tag):
+            if self.current and tag == self.current[0]:
+                self.regions.append((self.current[1], self.byte_position(), self.current[2]))
+                self.current = None
+    parser = Regions()
+    parser.feed(raw.decode('latin-1'))
+    parser.close()
+    if parser.current:
+        raise ValueError('脚本或样式未闭合，无法可靠计算分项。')
+    return parser.regions
 
 
 class ResourceBudgetExceeded(ValueError):
@@ -60,21 +87,18 @@ def analyze_html(html, warning_bytes=DEFAULT_WARNING_BYTES, limit_bytes=DEFAULT_
         raw.decode('utf-8')
     else:
         raise TypeError('html must be text or UTF-8 bytes')
-    regions = []
+    regions = _raw_regions(raw)
     course = None
     seen_course = False
-    for match in _SCRIPT.finditer(raw):
-        kind = 'courseData' if _COURSE_ID.search(match.group(1)) else 'scripts'
-        regions.append((match.start(2), match.end(2), kind))
+    for start, end, kind in regions:
         if kind == 'courseData':
             if seen_course:
                 raise ValueError('只能分析包含一个course-data的教材HTML。')
             seen_course = True
             try:
-                course = json.loads(match.group(2).decode('utf-8'))
+                course = json.loads(raw[start:end].decode('utf-8'))
             except (ValueError, UnicodeDecodeError) as error:
                 raise ValueError('course-data不是有效UTF-8 JSON，无法可靠归属图片。') from error
-    regions += [(match.start(1), match.end(1), 'styles') for match in _STYLE.finditer(raw)]
     regions.sort()
     if any(a[1] > b[0] for a, b in zip(regions, regions[1:])):
         raise ValueError('脚本与样式范围重叠，无法可靠计算分项。')

@@ -1,6 +1,6 @@
 {
   "name": "digital-textbook-portal",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Offline textbook conversion service and real-browser quality gate",
   "dependencies": {

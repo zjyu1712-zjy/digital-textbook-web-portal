@@ -54,3 +54,5 @@ review-binding只计算指纹，不能创建pass；review-state不能替代完�
 1.4.0 增量验收：资源报告须以最终HTML实际UTF-8字节核对，分项相加等于总字节；超限和报告路径错误不得覆盖既有HTML或源图片。图片副本除摘要和尺寸检查，还须实际查看细字、线条、公式和颜色；透明图、动画与特殊色彩模式不能静默丢失。
 
 缺章验收用 `tests/make_partial.py 工作目录/partial` 生成七章三缺章的明确合成样本，再运行 `node tests/learning-range-ui.cjs 工作目录/partial/partial.html 工作目录/checks/ranges`。确认前两章连续可用、第三至第五章待补、后两章单独列出，首章待补时不虚构起始可用段。Windows流程与实际范围见[Windows验收](windows-validation.md)。
+
+1.5.0 另执行 `node tests/mistake-exports.cjs`、真实下载与重开的 `tests/mistake-exports-ui.cjs`，以及估算和学科规则回归。独立复习 HTML 必须在 file:// 断网检查公式、历史图片、持久化、存储失败仍能导出及不改写主教材。成本校准只接受真实测量；合成日志仅验证算法。

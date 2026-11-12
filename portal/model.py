@@ -38,6 +38,63 @@ class ResponsesModel:
         self.cache.mkdir(exist_ok=True)
         self.skill_identity = skill_metadata(config.skill_dir)['fingerprint']
 
+    def _usage(self):
+        path = self.root / 'model-usage.json'
+        try:
+            usage = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'calls': 0, 'usage': []}
+            if (not isinstance(usage, dict) or type(usage.get('calls')) is not int
+                    or usage['calls'] < 0 or not isinstance(usage.get('usage'), list)):
+                raise ValueError('invalid usage ledger')
+        except (OSError, ValueError, TypeError) as exc:
+            raise ModelProblem('已有调用记录无法读取，未重置调用限额；请管理员核对检查点。') from exc
+        if usage.get('formatVersion') != 2:
+            # Old entries described successful responses only. Their original model
+            # identity and elapsed time were never recorded; do not invent either.
+            legacy = path.exists()
+            for row in usage['usage']:
+                if not isinstance(row, dict):
+                    raise ModelProblem('已有调用记录格式无效，未重置调用限额。')
+                row.setdefault('status', 'success')
+                for key in ('provider', 'model', 'skillFingerprint', 'attemptIndex', 'elapsedSeconds'):
+                    row.setdefault(key, None)
+                row.setdefault('tokens', None)
+                row['legacyImported'] = True
+            usage['legacyHistoryComplete'] = not legacy
+        rows = usage['usage']
+        if any(not isinstance(row, dict) or row.get('status') not in
+               ('success', 'failed', 'pending', 'cache-hit') for row in rows):
+            raise ModelProblem('已有调用记录的结果状态无效，未重置调用限额。')
+        network = [row for row in rows if row['status'] != 'cache-hit']
+        sequences = [row['networkSequence'] for row in network if row.get('networkSequence') is not None]
+        if (len(network) > usage['calls'] or any(type(value) is not int or value < 1 or value > usage['calls'] for value in sequences)
+                or len(set(sequences)) != len(sequences)):
+            raise ModelProblem('调用总数与已有请求明细不一致，未降低已用额度；请管理员核对检查点。')
+        usage.update(formatVersion=2, provider=self.config.provider, model=self.config.model,
+                     skillFingerprint=self.skill_identity)
+        return usage
+
+    def _entry(self, stage, status, attempt, key):
+        return {'stage': stage, 'status': status, 'attemptIndex': attempt,
+                'provider': self.config.provider, 'model': self.config.model,
+                'skillFingerprint': self.skill_identity, 'requestFingerprint': key,
+                'elapsedSeconds': None, 'tokens': None}
+
+    @staticmethod
+    def _tokens(result):
+        # Never copy arbitrary response metadata, text, prompts, or provider errors
+        # into a usage ledger. Missing/invalid counters remain unknown, not zero.
+        raw = result.get('usage') if isinstance(result, dict) else None
+        if not isinstance(raw, dict):
+            return None
+        valid = lambda value: type(value) is int and value >= 0
+        out = {key: raw[key] if valid(raw[key]) else None for key in
+               ('input_tokens', 'output_tokens', 'total_tokens', 'prompt_tokens', 'completion_tokens') if key in raw}
+        for key in ('input_tokens_details', 'prompt_tokens_details', 'output_tokens_details', 'completion_tokens_details'):
+            if isinstance(raw.get(key), dict):
+                out[key] = {name: raw[key][name] if valid(raw[key][name]) else None
+                            for name in ('cached_tokens', 'reasoning_tokens') if name in raw[key]}
+        return out or None
+
     def ask(self, stage, instructions, data, images=()):
         if self.cancelled():
             raise ModelProblem('任务已取消。')
@@ -62,10 +119,23 @@ class ResponsesModel:
             fingerprint.update(provider='bailian', workspace=self.config.bailian_workspace_id)
         key = hashlib.sha256(json.dumps(fingerprint, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
         cached = self.cache / (key + '.json')
-        if cached.is_file():
-            return json.loads(cached.read_text())['result']
         budget_path = self.root / 'model-usage.json'
-        usage = json.loads(budget_path.read_text()) if budget_path.exists() else {'calls': 0, 'usage': []}
+        if not budget_path.exists() and any(self.cache.glob('*.json')):
+            raise ModelProblem('回复缓存存在但调用记录缺失，未将调用次数重置为零；请管理员核对检查点。')
+        usage = self._usage()
+        if cached.is_file():
+            started = time.perf_counter()
+            try:
+                parsed = json.loads(cached.read_text(encoding='utf-8'))['result']
+                if not isinstance(parsed, dict):
+                    raise ValueError('invalid cached object')
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                raise ModelProblem('已保存回复缓存无法读取，请管理员核对检查点。') from exc
+            event = self._entry(stage, 'cache-hit', None, key)
+            event['elapsedSeconds'] = time.perf_counter() - started
+            usage['usage'].append(event)
+            save_json(budget_path, usage)
+            return parsed
         content = [{'type': 'text' if bailian else 'input_text', 'text': text}]
         for image in images:
             mime = 'image/png' if image.suffix.lower() == '.png' else 'image/jpeg'
@@ -91,49 +161,75 @@ class ResponsesModel:
             if usage['calls'] >= self.config.max_model_calls:
                 raise ModelProblem('已达到本任务的模型调用限额，保留检查点；请联系管理者调整限额后继续。')
             usage['calls'] += 1
+            event = self._entry(stage, 'pending', attempt + 1, key)
+            event['networkSequence'] = usage['calls']
+            usage['usage'].append(event)
+            # A process interruption leaves a pending attempt and consumed budget.
+            # Resume never silently turns an uncertain request into a free request.
             save_json(budget_path, usage)
             req = urllib.request.Request(endpoint, data=encoded,
                                          headers={'Authorization': 'Bearer ' + self.config.api_key, 'Content-Type': 'application/json'}, method='POST')
+            started, result, retry = time.perf_counter(), None, False
             try:
                 with urllib.request.build_opener(NoRedirect()).open(req, timeout=240) as response:
-                    if bailian and response.headers.get('x-dashscope-partialresponse', '').strip().lower() == 'true':
-                        raise ModelProblem('模型未完整返回结果，未把超时片段当成完整教材。')
                     raw = response.read(8_000_001)
                     if len(raw) > 8_000_000:
                         raise ModelProblem('模型返回内容过大，未采用截断结果。')
                     try:
-                        result = json.loads(raw)
+                        result = json.loads(raw, parse_constant=reject_json_constant)
                         if not isinstance(result, dict):
                             raise ValueError('object required')
                     except (ValueError, TypeError) as exc:
                         raise ModelProblem('模型返回格式无效，未生成不完整成品。') from exc
-                break
+                    if bailian and response.headers.get('x-dashscope-partialresponse', '').strip().lower() == 'true':
+                        raise ModelProblem('模型未完整返回结果，未把超时片段当成完整教材。')
+                parsed = self._parse_bailian(result) if bailian else self._parse_openai(result)
+                event['status'] = 'success'
             except urllib.error.HTTPError as exc:
-                if exc.code in (429, 500, 502, 503, 504) and attempt < 2:
-                    time.sleep(2 ** attempt)
-                    continue
-                if exc.code in (401, 403):
-                    raise ModelProblem('模型服务授权失败，请联系网站管理者核对凭据和模型权限。') from exc
-                raise ModelProblem(f'模型服务暂时不可用（HTTP {exc.code}），检查点已保留。') from exc
-            except (urllib.error.URLError, TimeoutError) as exc:
+                event.update(status='failed', failureKind='http-' + str(exc.code))
+                retry = exc.code in (429, 500, 502, 503, 504) and attempt < 2
+                if not retry:
+                    if exc.code in (401, 403):
+                        raise ModelProblem('模型服务授权失败，请联系网站管理者核对凭据和模型权限。') from exc
+                    raise ModelProblem(f'模型服务暂时不可用（HTTP {exc.code}），检查点已保留。') from exc
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                event.update(status='failed', failureKind='connection')
                 raise ModelProblem('模型服务连接中断，已保留检查点，可以稍后重试。') from exc
-        if bailian:
-            parsed = self._parse_bailian(result)
-        else:
-            if result.get('status') != 'completed':
-                raise ModelProblem('模型未完整返回结果，未把截断内容当成完整教材。')
-            parts = [c for item in result.get('output', []) if item.get('type') == 'message' for c in item.get('content', [])]
+            except ModelProblem:
+                event.update(status='failed', failureKind='response-or-redirect')
+                raise
+            finally:
+                event['elapsedSeconds'] = time.perf_counter() - started
+                event['tokens'] = self._tokens(result)
+                save_json(budget_path, usage)
+            if retry:
+                time.sleep(2 ** attempt)
+                continue
+            save_json(cached, {'stage': stage, 'result': parsed})
+            return parsed
+        raise ModelProblem('模型调用未完成，检查点已保留。')
+
+    @staticmethod
+    def _parse_openai(result):
+        if result.get('status') != 'completed':
+            raise ModelProblem('模型未完整返回结果，未把截断内容当成完整教材。')
+        try:
+            output = result.get('output', [])
+            if not isinstance(output, list) or any(not isinstance(item, dict) for item in output):
+                raise ValueError('invalid output')
+            parts = [c for item in output if item.get('type') == 'message' for c in item.get('content', [])]
+            if any(not isinstance(c, dict) for c in parts):
+                raise ValueError('invalid content')
             if any(c.get('type') == 'refusal' for c in parts):
                 raise ModelProblem('模型未能处理这份资料，请检查可用范围或联系管理者。')
-            try:
-                parsed = json.loads(''.join(c.get('text', '') for c in parts if c.get('type') == 'output_text'))
-                if not isinstance(parsed, dict):
-                    raise ValueError('object required')
-            except (ValueError, TypeError) as exc:
-                raise ModelProblem('模型返回格式无效，未生成不完整成品。') from exc
-        usage['usage'].append({'stage': stage, 'tokens': result.get('usage', {})})
-        save_json(budget_path, usage)
-        save_json(cached, {'stage': stage, 'result': parsed})
+            parsed = json.loads(''.join(c.get('text', '') for c in parts if c.get('type') == 'output_text'),
+                                parse_constant=reject_json_constant)
+            if not isinstance(parsed, dict):
+                raise ValueError('object required')
+        except (ValueError, TypeError) as exc:
+            if isinstance(exc, ModelProblem):
+                raise
+            raise ModelProblem('模型返回格式无效，未生成不完整成品。') from exc
         return parsed
 
     @staticmethod

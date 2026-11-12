@@ -14,6 +14,7 @@ from review_audit import (_context, _coverage_targets, _map_targets, _teaching,
 from independent_audit import audit_independent
 from task_contract import validate_contract
 from grading import validate_grading
+from discipline_checks import report_discipline_checks, validate_discipline_checks
 
 
 def _digest(value):
@@ -141,7 +142,7 @@ def _question_gaps(question):
 
 def _availability(course, cid, chapter, ids, relevant, complete, targets, items,
                   locations, uses, by_review, invalid_items, global_errors,
-                  unassigned, pending_materials, independent):
+                  unassigned, pending_materials, independent, discipline):
     """Separate declared reference-only gaps from the actual learning path."""
     learning_items = [iid for iid in relevant if uses.get((items[iid].get('sourceId'), cid)) != 'reference']
     reference_items = set(relevant) - set(learning_items)
@@ -154,6 +155,13 @@ def _availability(course, cid, chapter, ids, relevant, complete, targets, items,
             blockers.append({'id': key, 'kind': kind, 'message': message, **extra})
     if global_errors:
         block('scope:' + cid, 'scope', '资料范围或记录格式待核对，尚不能确认本章可连续学习。')
+    if discipline['configurationErrors']:
+        block('discipline-config:' + cid, 'discipline', '学科检查配置无效，需先修复明确规则及内容定位。')
+    for check in discipline['checks']:
+        if check.get('status') in ('fail', 'invalid'):
+            block('discipline:' + str(check.get('ruleIndex')), 'discipline',
+                  '本章配置的学科检查未通过：' + str(check.get('id') or '未命名规则') + '。',
+                  ruleId=check.get('id'), targetIds=check.get('targetIds', []))
     if unassigned:
         block('unassigned:' + cid, 'scope', '仍有原资料条目未确定所属章节。', sourceItemIds=list(unassigned))
     sampled = next((c for c in independent.get('chapters', []) if c.get('chapterId') == cid), {})
@@ -240,7 +248,7 @@ def renderer_fingerprint():
     paths = list((root / 'assets').rglob('*'))
     paths += [root / 'scripts' / name for name in
               ('pipeline.py', 'chapter_status.py', 'independent_audit.py',
-               'grading.py', 'review_audit.py', 'task_contract.py', 'resource_budget.py')]
+               'grading.py', 'review_audit.py', 'task_contract.py', 'resource_budget.py', 'discipline_checks.py')]
     return _digest({p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                     for p in sorted(paths) if p.is_file()})
 
@@ -264,7 +272,7 @@ def chapter_binding(course, inventory, chapter_id):
                # excluding evidence added by the checks themselves.
                'sharedLearningInputs': {k: course.get(k) for k in
                    ('schemaVersion', 'id', 'title', 'edition', 'version', 'scope',
-                    'organization', 'taskContract', 'sources', 'disciplines',
+                    'organization', 'taskContract', 'sources', 'disciplines', 'disciplineChecks',
                     'chapters', 'questions', 'exams', 'coverage', 'learningMap',
                     'semanticReviews', 'independentReview', 'issues', 'migrations')}}
     return {'version': 1, 'fingerprint': _digest(payload),
@@ -355,6 +363,20 @@ def _verification(course, inventory, cid, kind, ids, context, current_binding):
                        'checkedAt', 'targetIds', 'checks', 'artifactSHA256')} for r in current]}
 
 
+def _chapter_discipline(report, ids):
+    """Scope actual content failures; an invalid configuration stays global."""
+    checks = [check for check in report['checks'] if set(check.get('targetIds', [])) & set(ids)]
+    global_errors = [error for error in report['errors'] if error.get('scope') == 'configuration']
+    state = ('invalid' if global_errors or any(c['status'] == 'invalid' for c in checks) else
+             'fail' if any(c['status'] == 'fail' for c in checks) else
+             'pass' if checks else 'not-configured')
+    return {'status': state, 'configuredCount': len(checks),
+            'passedCount': sum(c['status'] == 'pass' for c in checks),
+            'failedCount': sum(c['status'] == 'fail' for c in checks),
+            'invalidCount': sum(c['status'] == 'invalid' for c in checks),
+            'checks': checks, 'configurationErrors': global_errors, 'note': report['note']}
+
+
 def _chapter_status(course, inventory):
     try:
         sources, items, chapters, targets, locations = _context(course, inventory)
@@ -364,6 +386,8 @@ def _chapter_status(course, inventory):
     independent = audit_independent(course, inventory)
     by_independent = {c['chapterId']: c for c in independent.get('chapters', [])}
     semantic = audit_reviews(course, inventory)
+    discipline = report_discipline_checks(course)
+    discipline_configuration_errors = [error for error in discipline['errors'] if error.get('scope') == 'configuration']
     map_errors = validate_learning_map(course, inventory)
     contract_errors = validate_contract(course) if course.get('schemaVersion') == 2 else []
     scope_errors = validate_learning_scope(course)
@@ -406,6 +430,7 @@ def _chapter_status(course, inventory):
     rows = []
     for cid, chapter in chapters.items():
         ids = sorted(t for t in targets if cid in locations[t])
+        chapter_discipline = _chapter_discipline(discipline, ids)
         relevant = sorted(i for i in items if cid in item_chapters[i])
         complete = []
         for iid in relevant:
@@ -449,18 +474,20 @@ def _chapter_status(course, inventory):
                      'content': {'status': content, 'mappedCount': len(complete), 'itemCount': len(relevant),
                                  'missingItemIds': sorted(set(relevant) - set(complete)), 'emptyTargetIds': empty},
                      'review': {'status': review, 'currentCount': statuses.count('fresh'), 'targetCount': len(ids)},
+                     'disciplineChecks': chapter_discipline,
                      'availability': _availability(course, cid, chapter, ids, relevant, complete, targets,
                          items, locations, uses, by_review, invalid_items,
                          global_map_errors + contract_errors + review_record_errors + scope_errors,
-                         unassigned, pending_materials, independent),
+                         unassigned, pending_materials, independent, chapter_discipline),
                      'independent': by_independent.get(cid, {'chapterId': cid, 'selectedCount': 0,
                                                            'reviewedCount': 0, 'status': 'not-reviewed'}),
                      'verification': {kind: _verification(course, inventory, cid, kind, ids,
                                         (chapters, targets, locations), binding) for kind in ('offline', 'visual')}})
     return {'chapters': rows, 'unassignedItems': sorted(unassigned),
-            'learningRange': _learning_range(course, rows, bool(scope_errors or contract_errors or global_map_errors or review_record_errors)),
+            'disciplineChecks': discipline,
+            'learningRange': _learning_range(course, rows, bool(scope_errors or contract_errors or global_map_errors or review_record_errors or discipline_configuration_errors)),
             'errors': list(dict.fromkeys(validate_chapter_checks(course, inventory) + map_errors
-                                         + contract_errors + review_record_errors + scope_errors)),
+                                         + contract_errors + review_record_errors + scope_errors + validate_discipline_checks(course))),
             'note': '内容映射不是正确性结论；抽检仅覆盖所列样本；功能与视觉只汇总实际记录范围。'}
 
 

@@ -17,6 +17,7 @@ from .model import ResponsesModel, ModelProblem, save_json
 from .quality import run_browser
 from .independent_review import run_independent_review
 from .chapter_checks import browser_chapter_records
+from .estimation import JobEstimate
 
 
 class QualityProblem(ValueError):
@@ -147,12 +148,26 @@ class Converter:
     def run(self, job_dir, manifest, emit, cancelled):
         root = Path(job_dir)
         checks = []
+        self.work_estimate = None
         try:
             return self._run(root, manifest, emit, cancelled, checks)
         except (QualityProblem, InputProblem, ModelProblem) as exc:
             checks.append({'name': '转换质量门禁', 'status': 'fail', 'detail': str(exc)})
             save_json(root / 'checks/result.json', {'status': 'needs_attention', 'checks': checks})
             return {'status': 'needs_attention', 'message': str(exc), 'checks': checks}
+        finally:
+            if self.work_estimate is not None:
+                try:
+                    self.work_estimate.refresh()
+                except (OSError, ValueError, TypeError):
+                    save_json(root / 'checks/work-estimate-error.json',
+                              {'status': 'unknown', 'message': '估算刷新未完成；实际调用记录仍保留在 model-usage.json。'})
+
+    def _estimate(self, **changes):
+        try:
+            return self.work_estimate.update(**changes)
+        except (OSError, ValueError, TypeError) as exc:
+            raise QualityProblem('调用量估算配置或记录无效，请管理员核对；未自动重置已有调用限额。') from exc
 
     def _run(self, root, manifest, emit, cancelled, checks):
         def stop():
@@ -177,6 +192,13 @@ class Converter:
                 primary = [sources[0]['id']]
         _require(primary, '组合资料还没有明确主资料。请在上传列表中勾选主资料后重新提交。')
         model = self.model_factory(self.config, root, cancelled)
+        try:
+            self.work_estimate = JobEstimate(self.config, root, extracted,
+                                            test_double=not isinstance(model, ResponsesModel))
+        except (OSError, ValueError, TypeError) as exc:
+            raise QualityProblem('调用量估算配置无法读取，请管理员核对。') from exc
+        self._estimate()
+        emit('estimating', f'已读取 {len(pages)} 页或文字段，处理量估算已更新；章节单元和抽样数将在实际规划后补充。')
         common = self.rules(['quality.md', 'preferences.md', 'material-modes.md'])
         schema = self.rules(['schema.md', 'task-contract-and-review.md'])
         # Independent inventories are created BEFORE any generated lesson exists.
@@ -212,6 +234,7 @@ summary 必须足以辨认条件和题设，不是替代原文；小问用 a,b,c
         _require(inventory, '资料只有目录、封面或空白，未找到可转换的教学正文。')
         full_inventory = {'source': '先对原文与原页独立盘点；未从生成的课程反推清单。', 'items': inventory, 'pageAudits': page_audits}
         save_json(root / 'full-source-inventory.json', full_inventory)
+        self._estimate(inventory=full_inventory, completed=['inventory'], phase='原页清单核对后')
         passed('原资料盘点', f'已读取 {len(sources)} 份资料、{len(pages)} 页/文字段；逐页独立清单含 {len(inventory)} 项。')
         stop()
         emit('planning', '正在按真实目录安排章节，匹配教材、课件、解析和真题。')
@@ -233,6 +256,7 @@ id 只能用 ASCII 字母数字下划线，ch01/u01等，单元全局唯一。�
                          'inventory': [{k:v for k,v in item.items() if k != 'summary'} for item in inventory]})
         self.check_plan(plan, inventory, manifest, sources, primary)
         save_json(root / 'plan.json', plan)
+        self._estimate(plan=plan, completed=['plan'], phase='章节规划后')
         emit('planning', f"采用 {plan['mode']} 资料模式；学科：{'、'.join(plan['disciplines'])}。{plan['reason']}")
         source_map = {i['id']: i for i in inventory}
         excluded = {r['itemId'] for r in plan.get('excluded', [])}
@@ -329,6 +353,7 @@ sourceProblem=true 表示缺页、不可辨认、歧义或来源冲突，不能�
                 else:
                     course['exams'].append(exam)
             save_json(root / 'checkpoint.json', self.pipeline.checkpoint(course))
+        self._estimate(completed=['generation', 'review'], phase='逐单元核查后')
         passed('独立内容核查', f'{len(selected)} 项来源内容已逐单元核查；核查者为模型，原页与核查证据保留在任务中。')
         # A separate global pass detects missing/duplicated cross-unit questions and source conflicts.
         emit('reviewing', '正在检查跨章节关联、整卷真题和全范围覆盖。')
@@ -360,12 +385,14 @@ sourceProblem=true 表示缺页、不可辨认、歧义或来源冲突，不能�
         for record in course['semanticReviews']:
             record['binding'] = {'version': 1, 'fingerprint': self.pipeline.review_fingerprint(course, selected_inv, record['targetIds'])}
         course['version'] = 'v-' + hashlib.sha256(self.pipeline.stable(course).encode()).hexdigest()[:16]
+        self._estimate(completed=['global-review'], phase='全局核查后')
         # A source-first sample review starts only after public IDs and content are fixed.
         # No generated conclusions or prior review results are supplied to its requests.
         emit('sampling', '正在按章节、来源和内容类型选择样本，先独立读取原页。')
         try:
             independent = run_independent_review(self.pipeline, course, selected_inv, model, root,
-                pages, plan, self.config.provider_label + '/' + self.config.model, emit, stop)
+                pages, plan, self.config.provider_label + '/' + self.config.model, emit, stop,
+                on_plan=lambda sample_plan: self._estimate(sample_plan=sample_plan, phase='抽样计划确定后'))
         except ValueError as exc:
             save_json(root / 'course.json', course)
             raise QualityProblem('独立抽检未完成：' + str(exc)) from exc
@@ -385,6 +412,7 @@ sourceProblem=true 表示缺页、不可辨认、歧义或来源冲突，不能�
         for source in manifest['files']:
             _require(self.pipeline.sha(root / source['path']) == source['sha256'], '上传原件在抽检期间发生变化，请重新审校。')
         _require(skill_metadata(self.skill)['fingerprint'] == self.skill_info['fingerprint'], '转换组件在抽检期间发生变化，请使用固定版本重新执行。')
+        self._estimate(completed=['independent-source', 'independent-compare'], phase='独立抽检后')
         passed('独立抽样对读', f'{independent["reviewedCount"]}/{independent["selectedCount"]} 个样本完成原页先读及独立对照；同一模型的独立请求，不代表全文或人工认证。')
         emit('validating', '正在执行原 Skill 的结构、公式、覆盖映射与资源内嵌检查。')
         errors = self.pipeline.validate(course, selected_inv)
@@ -410,6 +438,7 @@ sourceProblem=true 表示缺页、不可辨认、歧义或来源冲突，不能�
 返回 JSON {pass:boolean,scope:string,evidence:string,issues:[string]}。''',
             {'screenshots': [p.name for p in shots], 'browserChecks': browser.get('checks', [])}, shots)
         save_json(root / 'checks/visual.json', visual)
+        self._estimate(completed=['visual-review'], phase='模型核查阶段结束后')
         _require(visual.get('pass') is True and not visual.get('issues') and _nonempty(visual.get('evidence')),
                  '视觉核查未通过：' + str(visual.get('issues', [])))
         passed('浏览器功能检查', '实际 file:// 离线检查通过；具体适用题型、记录恢复和布局范围见内嵌验收。')

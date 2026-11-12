@@ -34,10 +34,16 @@
   const v=c.verification[kind],records=v.records||[];
   return '<section class="chapter-verification"><h3>'+esc(kind==='offline'?'离线功能':'视觉检查')+' · '+esc(text('verification',v.status))+'</h3><p>已记录检查 '+esc(v.verifiedCount)+' / '+esc(v.targetCount)+' 项内容。'+(kind==='offline'?'这里展示实际执行的检查，作答测试范围以记录为准。':'截图以实际可见内容为准，不扩大到整章。')+'</p>'+records.map(r=>'<details><summary>'+esc(r.checkedAt)+' · '+esc(r.result==='pass'?'通过':r.result==='fail'?'未通过':'待完成')+'</summary><p>'+esc(r.method)+'</p><p>'+esc(r.evidence)+'</p><p>检查项目：'+esc(r.checks.join('、'))+'</p><p>内容范围：'+esc(r.targetIds.join('、'))+'</p><p>核查者：'+esc(r.reviewer)+'</p><small>文件校验值 '+esc(r.artifactSHA256)+'</small></details>').join('')+(v.staleRecords?'<p>另有 '+esc(v.staleRecords)+' 条旧版验证记录，未计入当前范围。</p>':'')+'</section>';
  }
+ function discipline(c){
+  const d=c.disciplineChecks;if(!d||d.status==='not-configured')return '<p>学科规则：未配置专门规则；不计作检查通过。</p>';
+  const label={pass:'所列规则通过',fail:'发现不一致',invalid:'检查数据或规则需处理'}[d.status]||'待核对';
+  const issues=[...new Set([...(d.checks||[]).flatMap(c=>c.issues||[]),...(d.configurationErrors||[])].map(x=>typeof x==='string'?x:x.message||x.detail||JSON.stringify(x)))];
+  return '<section class="chapter-discipline"><h3>学科规则 · '+esc(label)+'</h3><p>仅检查声明的借贷、合计或维度关系，不替代内容审校。</p>'+(issues.length?'<ul>'+issues.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>':'')+'</section>';
+ }
  function chapter(course,id){
   const c=row(course,id);if(!c)return '';
   const i=c.independent;
-  return '<details class="chapter-quality" data-chapter-quality="'+esc(id)+'"><summary><span>本章完成情况</span>'+summary(course,id)+'</summary><div class="chapter-quality-body">'+availability(c)+'<p>内容已整理 '+esc(c.content.mappedCount)+' / '+esc(c.content.itemCount)+' 个来源条目；审校记录当前有效 '+esc(c.review.currentCount)+' / '+esc(c.review.targetCount)+' 项内容。整理数量不能代替正确性核查。</p><p>独立抽检：'+esc(text('independent',i.status))+'，已核查 '+esc(i.reviewedCount)+' / '+esc(i.selectedCount)+' 个样本。抽样通过不代表全文已复核。</p>'+evidence(c,'offline')+evidence(c,'visual')+'</div></details>';
+  return '<details class="chapter-quality" data-chapter-quality="'+esc(id)+'"><summary><span>本章完成情况</span>'+summary(course,id)+'</summary><div class="chapter-quality-body">'+availability(c)+'<p>内容已整理 '+esc(c.content.mappedCount)+' / '+esc(c.content.itemCount)+' 个来源条目；审校记录当前有效 '+esc(c.review.currentCount)+' / '+esc(c.review.targetCount)+' 项内容。整理数量不能代替正确性核查。</p><p>独立抽检：'+esc(text('independent',i.status))+'，已核查 '+esc(i.reviewedCount)+' / '+esc(i.selectedCount)+' 个样本。抽样通过不代表全文已复核。</p>'+discipline(c)+evidence(c,'offline')+evidence(c,'visual')+'</div></details>';
  }
  function overview(course){
   const report=course.validation?.chapterStatus;if(!report)return '<p>此教材尚未记录章级状态。</p>';

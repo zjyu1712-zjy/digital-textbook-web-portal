@@ -20,6 +20,20 @@ def html(course, css='', js=''):
 
 
 class ResourceBudgetTests(unittest.TestCase):
+    def test_script_literal_style_tags_are_script_bytes(self):
+        js = 'const page = `<style>body{color:red}</style>`; // 中文\n'
+        value, payload = html({'title': '中文'}, 'p{color:green}', js)
+        report = analyze_html(value)
+        self.assertEqual(report['parts']['scripts'], len(js.encode('utf-8')))
+        self.assertEqual(report['parts']['styles'], len('p{color:green}'))
+        self.assertEqual(report['parts']['courseData'], len(payload.encode('utf-8')))
+        self.assertEqual(sum(report['parts'].values()), len(value.encode('utf-8')))
+
+    def test_comments_do_not_create_false_course_data(self):
+        value, payload = html({'title': '中文'})
+        value = '<!-- <script id="course-data">null</script> -->\n' + value
+        self.assertEqual(analyze_html(value)['parts']['courseData'], len(payload.encode('utf-8')))
+
     def test_disjoint_exact_utf8_breakdown_and_repeated_images(self):
         image = uri('image/png', b'12345')
         font = uri('font/woff2', b'abcdef')

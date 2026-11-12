@@ -8,3 +8,9 @@
 
 /* Per-material purposes wrap with the existing upload form. */
 .file-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end}.file-controls label{min-width:0;font-size:10px;color:var(--muted)}.file-controls label:last-child{grid-column:1/-1}.file-controls input[type=text]{margin-top:4px}.site-footer{flex-wrap:wrap;padding-block:18px}#skill-version{font-size:10px;color:var(--muted)}
+
+.work-estimate{margin:24px 0;padding:20px;border:1px solid var(--line,#d9dfd8);border-radius:14px;background:var(--paper,#f8f8f3)}
+.estimate-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}.estimate-top h3{margin:0}
+.estimate-counts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}.estimate-counts div{display:flex;flex-direction:column;gap:4px}.estimate-counts strong{font-size:1.4rem}.estimate-counts span{font-size:.84rem;color:var(--muted,#627169)}
+.work-estimate p{overflow-wrap:anywhere;line-height:1.7}.work-estimate .field-note{margin:8px 0}
+@media(max-width:520px){.work-estimate{padding:16px}.estimate-counts{grid-template-columns:repeat(2,minmax(0,1fr))}}

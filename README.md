@@ -2,7 +2,7 @@
 
 使用者打开网站，上传教材（或教材与课件、提纲、解析、真题），选择资料主次，等待处理和检查，下载一个可离线学习的 HTML。无需安装 Codex、配置模型密钥或启动本机服务器。
 
-**当前版本：网页端 0.4.0，随包技能 1.4.0。交付为可部署工程，尚未上线公共网站。** 本轮已测试网页交互、实际打包、离线浏览器与故障门禁；模型调用使用测试替身。此前版本的 Linux 容器构建、持久卷、Chromium 与 HTTP 服务有实测记录，不能据此认定新版容器已通过。付费模型的完整转换、目标服务器与公网 HTTPS 尚未实测，详见 [验收记录](ACCEPTANCE.md)。模型测试替身只在 `tests/`，生产服务没有假转换开关。
+**当前版本：网页端 0.5.0，随包技能 1.5.0。交付为可部署工程，尚未上线公共网站。** 本轮已测试网页交互、实际打包、离线浏览器与故障门禁；模型调用使用测试替身。此前版本的 Linux 容器构建、持久卷、Chromium 与 HTTP 服务有实测记录，不能据此认定新版容器已通过。付费模型的完整转换、目标服务器与公网 HTTPS 尚未实测，详见 [验收记录](ACCEPTANCE.md)。模型测试替身只在 `tests/`，生产服务没有假转换开关。
 
 本仓库包含网页、任务后台、转换流程、检查工具与 Docker Compose 部署配置。仅需在 Codex 中使用 Skill 时，可使用独立的 [digital-textbook-html 仓库](https://github.com/zjyu1712-zjy/digital-textbook-html)。本工程随附 `skill/`，部署时不需要安装 Codex，也不需要从另一仓库临时下载组件。
 
@@ -101,7 +101,7 @@ OpenAI API 实现依据：[Responses JSON 模式](https://developers.openai.com/
 先取得经过核对的固定上游版本，在门户目录执行：
 
 ```sh
-python3 scripts/sync_skill.py --source /absolute/path/digital-textbook-html --upstream-ref v1.4.0
+python3 scripts/sync_skill.py --source /absolute/path/digital-textbook-html --upstream-ref v1.5.0
 python3 scripts/sync_skill.py
 python3 scripts/sync_skill.py --check-source /absolute/path/digital-textbook-html
 ```
@@ -111,3 +111,7 @@ python3 scripts/sync_skill.py --check-source /absolute/path/digital-textbook-htm
 升级先备份部署数据并停止正在处理的工作，再更新工程及技能。已下载 HTML 和学习备份不会因升级网站而被重写；服务端旧成品仍保留原版本记录。重试未完成旧任务时重新走 v2 流程，模型缓存以转换修订号和实际技能摘要隔离，旧 v1 缓存不会被当作当前已审内容，调用预算继续累计。题目和书的稳定标识算法保持兼容。界面用途说明会进入新任务；旧任务缺少用途说明时仍保留原主资料选择，辅料按学习补充处理，不能自动降为仅存档。
 
 本次同步验收使用合成资料、显式测试模型替身及实际浏览器；不等于付费模型已完成真实教材转换。Windows 实机、目标服务器和公网部署仍按各自实际验收记录判断。
+
+## 估算与恢复
+
+页面按已读取资料、章节规划和抽样计划更新剩余调用区间；未知时间/费用不会用0代替。管理员可配置真实日志形成的阶段校准与明确价格，详见[成本与恢复](docs/cost-and-resume.md)。旧任务继续保留实际调用计数；缓存、失败重试和中断结果分别记录。

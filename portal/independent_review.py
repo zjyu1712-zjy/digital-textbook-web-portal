@@ -84,7 +84,7 @@ def _sample_pages(sample, inventory, pages, plan, course):
     return result
 
 
-def run_independent_review(pipeline, course, inventory, model, root, pages, plan, identity, emit, stop):
+def run_independent_review(pipeline, course, inventory, model, root, pages, plan, identity, emit, stop, on_plan=None):
     """Return actual responses plus deterministic bindings, or a non-passing report.
 
     Reviewer IDs identify separate request roles, not different models or people.
@@ -96,6 +96,8 @@ def run_independent_review(pipeline, course, inventory, model, root, pages, plan
     producer = identity + '/generation-request'
     reviewer = identity + '/source-first-review-request'
     sample_plan = pipeline.create_plan(course, inventory, producer_id=producer)
+    if on_plan is not None:
+        on_plan(sample_plan)
     source_packet = pipeline.review_packet(course, inventory, sample_plan, phase='source')
     record = {'required': True, 'plan': sample_plan, 'records': [],
               'execution': {'modelIdentity': identity, 'sameModel': True,

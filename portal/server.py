@@ -21,6 +21,7 @@ import uuid
 from wsgiref.util import FileWrapper
 import zipfile
 
+from .estimation import public_estimate
 from .config import Config
 from .store import QueueFull, Store
 
@@ -365,7 +366,7 @@ class Portal:
         events = json.loads(row["events"])
         for event in events:
             event["at"] = _date(event["at"])
-        return {"id": row["id"], "title": row["title"], "status": row["status"], "stage": row["stage"], "message": row["message"], "createdAt": _date(row["created"]), "updatedAt": _date(row["updated"]), "events": events, "checks": json.loads(row["checks"]), "downloadAvailable": available, "expiresAt": _date(row["expires"])}
+        return {"id": row["id"], "title": row["title"], "status": row["status"], "stage": row["stage"], "message": row["message"], "createdAt": _date(row["created"]), "updatedAt": _date(row["updated"]), "events": events, "checks": json.loads(row["checks"]), "downloadAvailable": available, "expiresAt": _date(row["expires"]), "estimate": public_estimate(self.jobs_dir / row["id"] / "work-estimate.json")}
 
     def _headers(self, content_type):
         return [("Content-Type", content_type), ("Cache-Control", "no-store"), ("X-Content-Type-Options", "nosniff"), ("Referrer-Policy", "no-referrer"), ("X-Frame-Options", "DENY"), ("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"), ("Permissions-Policy", "camera=(), microphone=(), geolocation=()")]

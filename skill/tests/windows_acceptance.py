@@ -160,8 +160,10 @@ def run_acceptance(skill, previous, workspace, expected_system=None):
             raise RuntimeError('The generated HTML has external resource problems.')
         report['demoSHA256'] = hashlib.sha256(demo_html.read_bytes()).hexdigest()
 
+        command('exports-unit', [node, skill / 'tests/mistake-exports.cjs'])
         for script, name in [('runtime-check.cjs', 'runtime'), ('demo.cjs', 'demo'),
-                             ('mistakes-ui.cjs', 'mistakes'), ('quality-ui.cjs', 'quality')]:
+                             ('mistakes-ui.cjs', 'mistakes'), ('quality-ui.cjs', 'quality'),
+                             ('mistake-exports-ui.cjs', 'exports')]:
             result_file = evidence / name / 'report.json'
             destination = result_file if name == 'runtime' else result_file.parent
             try:

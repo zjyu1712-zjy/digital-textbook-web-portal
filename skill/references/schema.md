@@ -22,6 +22,7 @@
 - 上述v2新增字段的枚举、例子、绑定及旧数据升级见 [任务资料约定与审校时效](task-contract-and-review.md)。
 - 可选 `independentReview:{required?,plan,sourceRead,records}` 保存先读原文、再对照生成内容的独立抽检；`required:true` 时缺项、过期或失败不能交付完整成果。计划及记录结构见 [独立抽检](independent-review.md)。旧教材不因缺此字段被自动补出通过结论。
 - 可选 `chapterChecks` 保存实际浏览器/视觉证据，派生的 `validation.chapterStatus` 分别展示各章内容、审校、抽检和验证范围；见 [章级状态](chapter-status.md)。构建成功不产生功能或视觉通过。
+- 可选 `disciplineChecks:[{id,kind,target,...}]` 明确定位实际小节/题目的表格或矩阵，执行借贷合计、统计合计、百分比、频数与矩阵形状检查。未配置不等于学科通过，失败或无效会阻止完整构建；不改变学生判分。定位、规则及边界见 [明确配置的学科检查](discipline-checks.md)。
 - `issues:[]`；`migrations:{questionAliases:{旧ID:新ID}}` 只用于真实不可避免的ID变更；默认不变。迁移不改写旧快照。
 - `acceptance` 为验收说明的内容块数组；结果只写真实测试，明确范围和未验证项。
 
@@ -58,3 +59,5 @@ IndexedDB `digital-textbook:<book.id>`，结构版本独立于书的内容versio
 章节可用性由构建器派生，不接受手填“已完成”。`chapter.pending: {reason: "具体待补说明"}` 可为后续章节保留位置；只有 scope 为 excerpt 或 incomplete 时才能保留空 sections。需要的资料未补齐时不能把整份范围标成 complete。`taskContract.pendingMaterials` 默认表示必要资料；只有明确约定非必需时才设置 `required:false` 并填写 `optionalReason`，不能为了进度变绿而改用途。
 
 `validation.chapterStatus.learningRange` 给出本次收录章节的总数、可学习数、首段连续范围和其他可用段。它依据当前资料映射、题设/答案、审校及本次必需抽检，不表示所有浏览器与视觉验收已通过。详细字段与规则见[章级状态](chapter-status.md)。构建后返回的 `resources` 和 `.size.json` 单独记录最终文件实际体积，见[资源体积管理](resource-budget.md)。
+
+1.5.0 增加可选 `validation.disciplineChecks` 及章级 `disciplineChecks` 报告，课程 schemaVersion 仍为 2。实际学科内容错误影响关联章节；配置或定位无效时不能生成全局可学习结论。无规则的章节显示未配置，不能继承其他章节的通过状态。

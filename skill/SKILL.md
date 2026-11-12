@@ -2,7 +2,7 @@
 name: digital-textbook-html
 description: "Use when converting textbooks or textbook/course-slide/outline/exercise-solution/exam combinations into offline interactive learning HTML, or upgrading and repairing such learning HTML. 适用于数字教材转换、学习HTML升级、自检修复；不用于只解一道题或修改普通网页。"
 metadata:
-  version: "1.4.0"
+  version: "1.5.0"
   runtime: "Python 3.9+; Node.js for formula checks; Node.js 20+, Playwright and Chromium for browser verification."
 ---
 
@@ -57,3 +57,9 @@ node "$DTH_SKILL/tests/runtime-check.cjs" "$DTH_WORK/output/学习教材.html" "
 错题本从明确客观错答与用户显式标记归集，保留版本快照、重做与掌握状态，详见 [错题本](references/mistakes.md)。升级时检查错题导出、完整备份恢复和旧题改版，不清空旧学习记录。
 
 维护和复用边界见 [组件来源与维护](references/component-provenance.md)。1.0.1 草稿缓存修复继续保留，见 [原修复记录](references/release-1.0.1.md)；1.1.0 跨平台改动与实测边界见 [跨平台验收](references/release-1.1.0.md)。截图仍需独立视觉核查。
+
+## 追加能力
+
+- 错题多格式导出与独立复习遵循 [mistake-exports.md](references/mistake-exports.md)，使用提交时题目和答案快照，不替换为当前题目；复习页的新记录独立保存。
+- 转换工作量预估和中断恢复遵循 [cost-and-resume.md](references/cost-and-resume.md)。未知页数、单元数、样本数或计费条件须明确，测试替身不能作为真实模型费用或质量基线。
+- 原资料存在明确借贷、合计、百分比、频数或矩阵维度关系时，可按 [discipline-checks.md](references/discipline-checks.md) 声明目标及规则；检查作用于实际内容块，未配置不等于通过，不替代语义审校或自动扩大判分。
