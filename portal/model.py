@@ -55,7 +55,7 @@ class ResponsesModel:
         for image in images:
             if not image.is_relative_to(self.root.resolve()):
                 raise ModelProblem('核查图片不属于本任务。')
-        fingerprint = {'conversionRevision': 'schema-v2-source-first-sampling-2', 'skillFingerprint': self.skill_identity, 'model': self.config.model, 'stage': stage, 'instructions': instructions,
+        fingerprint = {'conversionRevision': 'schema-v2-resource-ranges-3', 'skillFingerprint': self.skill_identity, 'model': self.config.model, 'stage': stage, 'instructions': instructions,
                        'data': data, 'images': [hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in images]}
         # OpenAI keeps its legacy namespace; Bailian never reads or writes it.
         if bailian:

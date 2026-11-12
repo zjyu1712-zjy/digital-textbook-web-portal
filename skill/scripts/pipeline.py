@@ -6,7 +6,8 @@ from task_contract import classify,validate_contract
 from review_audit import validate_learning_map,review_fingerprint,audit_reviews
 from grading import validate_grading
 from independent_audit import create_plan,review_packet,audit_independent
-from chapter_status import chapter_binding,chapter_status,validate_chapter_checks
+from chapter_status import chapter_binding,chapter_status,validate_chapter_checks,validate_learning_scope
+from resource_budget import analyze_html,enforce_budget,ResourceBudgetExceeded
 SKILL=Path(__file__).resolve().parents[1]
 MODES={'textbook','slides','outline','combined'}
 DISCIPLINES={'math','theory','models','accounting','statistics','general'}
@@ -57,7 +58,7 @@ def validate(d,inv):
  chids={c.get('id')for c in d.get('chapters',[])};sids={s.get('id')for c in d.get('chapters',[])for s in c.get('sections',[])}
  for c in d.get('chapters',[]):
   ident(c,'chapter')
-  if not c.get('sections'):e.append('empty chapter')
+  if not c.get('sections') and not (isinstance(c.get('pending'),dict) and isinstance(c['pending'].get('reason'),str) and c['pending']['reason'].strip() and d.get('scope',{}).get('completeness') in ('excerpt','incomplete')):e.append('empty chapter')
   for s in c.get('sections',[]):
    ident(s,'section');targets[s.get('id')]=s
    if not substantive(s.get('blocks',[])):e.append(str(s.get('id'))+': title without body')
@@ -125,6 +126,7 @@ def validate(d,inv):
  elif any(r.get('binding')for r in d.get('semanticReviews',[])if isinstance(r,dict)):
   e.extend(audit_reviews(d,inv)['errors'])
  e.extend(validate_chapter_checks(d,inv))
+ e.extend(validate_learning_scope(d))
  independent=d.get('independentReview')
  required=isinstance(independent,dict)and independent.get('required')is True
  if isinstance(independent,dict)and 'required'in independent and type(independent['required'])is not bool:e.append('independentReview.required must be boolean')
@@ -169,7 +171,8 @@ def embedded_math_css():
   encoded=base64.b64encode(p.read_bytes()).decode()
   return 'src:url(data:font/woff2;base64,'+encoded+') format("woff2")'
  return re.sub(r'src:([^;}]+)',font_sources,css)
-def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None):
+def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None,*,warning_bytes=60*1024**2,limit_bytes=100*1024**2,size_report=None):
+ if size_report is not None and Path(size_report).resolve()==Path(dest).resolve():raise ValueError('体积报告不能与HTML使用同一路径')
  d=copy.deepcopy(data);errors=validate(d,inventory)
  if errors and not allow_incomplete:raise ValueError('\n'.join(errors))
  if errors:d['scope']['completeness']='incomplete'
@@ -181,10 +184,13 @@ def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None):
   r=subprocess.run([n,str(SKILL/'scripts/check_math.cjs'),str(SKILL/'assets/vendor/katex.min.js')],input=json.dumps(expressions),text=True,encoding="utf-8",capture_output=True)
   if r.returncode:raise ValueError('formula validation failed: '+r.stderr)
  root=Path(asset_root).resolve()
+ output_paths={Path(dest).resolve()}
+ if size_report is not None:output_paths.add(Path(size_report).resolve())
  for b in all_blocks(d):
   if b['type']=='image':
    p=(root/b['path']).resolve()
    if not p.is_relative_to(root):raise ValueError('asset outside approved input root')
+   if p in output_paths:raise ValueError('输出HTML或体积报告不能覆盖输入图片：'+str(b['path']))
    mime=mimetypes.guess_type(str(p))[0]
    if mime not in ('image/png','image/jpeg','image/webp','image/gif'):raise ValueError('image must be local raster; use structured diagram for SVG')
    if d.get('schemaVersion')==2 and sha(p)!=b.get('sha256'):raise ValueError('image content changed: update image sha256 and re-review '+str(b['path']))
@@ -194,9 +200,13 @@ def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None):
  values={'TITLE':html.escape(d['title']),'CSS':css+'\n'+'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['style.css','mistakes.css','quality.css']),'DATA':payload,'JS':'\n'.join((SKILL/'assets'/f).read_text(encoding="utf-8")for f in ['vendor/katex.min.js','storage.js','grading.js','mistakes.js','quality.js','app.js'])}
  shell=(SKILL/'assets/shell.html').read_text(encoding="utf-8")
  for k,v in values.items():shell=shell.replace('@@'+k+'@@',v)
+ resources=analyze_html(shell,warning_bytes=warning_bytes,limit_bytes=limit_bytes)
+ if size_report is not None:write(size_report,resources)
+ enforce_budget(resources)
  dest=Path(dest);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(shell,encoding="utf-8")
  issues=inspect_html(dest)
  if issues:raise ValueError('packaging validation: '+str(issues))
+ d['validation']['resources']=resources
  return d['validation']
 def inventory_files(paths):
  rows=[]
@@ -225,7 +235,9 @@ def main():
   if cmd=='chapter-binding':a.add_argument('--chapter',required=True)
  for cmd in ('validate','build'):
   a=sp.add_parser(cmd);a.add_argument('course');a.add_argument('--inventory',required=True);a.add_argument('--out',required=True)
-  if cmd=='build':a.add_argument('--assets',default='.');a.add_argument('--allow-incomplete',action='store_true');a.add_argument('--node')
+  if cmd=='build':
+   a.add_argument('--assets',default='.');a.add_argument('--allow-incomplete',action='store_true');a.add_argument('--node')
+   a.add_argument('--warn-mib',type=int,default=60);a.add_argument('--max-mib',type=int,default=100);a.add_argument('--size-report',help='体积分项报告，默认写入HTML路径后加.size.json')
  a=sp.add_parser('inspect');a.add_argument('html')
  a=sp.add_parser('checkpoint');a.add_argument('course');a.add_argument('--out',required=True);a.add_argument('--previous')
  args=ap.parse_args()
@@ -250,7 +262,11 @@ def main():
    report=chapter_status(read(args.course),read(args.inventory));write(args.out,report);print(json.dumps({'chapters':len(report['chapters']),'errors':report['errors'],'note':report['note']},ensure_ascii=False));return bool(report['errors'])
   elif args.cmd=='validate':
    d=read(args.course);inv=read(args.inventory);e=validate(d,inv);write(args.out,{'errors':e,'structuralPass':not e,'assurance':audit_reviews(d,inv),'independent':audit_independent(d,inv),'chapterStatus':chapter_status(d,inv),'semanticMeaning':'结构及审校时效通过不等于学术正确；旧v1自由文本记录不证明本轮审校完成'});print(json.dumps({'errors':e},ensure_ascii=False));return bool(e)
-  elif args.cmd=='build':print(json.dumps(build(read(args.course),read(args.inventory),args.out,args.assets,args.allow_incomplete,args.node),ensure_ascii=False))
+  elif args.cmd=='build':
+   report_path=args.size_report or args.out+'.size.json'
+   inputs={Path(args.course).resolve(),Path(args.inventory).resolve()}
+   if Path(args.out).resolve() in inputs or Path(report_path).resolve() in inputs:raise ValueError('输出HTML或体积报告不能覆盖课程和来源清单输入')
+   print(json.dumps(build(read(args.course),read(args.inventory),args.out,args.assets,args.allow_incomplete,args.node,warning_bytes=args.warn_mib*1024**2,limit_bytes=args.max_mib*1024**2,size_report=report_path),ensure_ascii=False))
   elif args.cmd=='inspect':
    e=inspect_html(args.html);print(json.dumps(e,ensure_ascii=False));return bool(e)
   elif args.cmd=='checkpoint':

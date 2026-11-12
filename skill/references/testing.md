@@ -49,3 +49,8 @@ review-binding只计算指纹，不能创建pass；review-state不能替代完�
 `{issueId,observed,evidence,component/source,minimalFix,round,retest,regression,status}` 保存到工作区。结构、渲染、引用、资源与确定计算可在生成副本修复；缺材料/歧义/冲突只能标记或补材料。默认同类问题三轮仍失败就停该修复链，输出具体阻塞与可用部分；用户明确要求继续时遵从后续指令，持续定位与复测，不以次数代替解决问题。
 
 禁止删除难题、题设/测试断言、关闭保存、隐藏公式或换成联网资源来通过测试。升级旧HTML先备份，再核对ID、数据库和导入格式，迁移测试必须有旧样本和恢复路径。报告分 pass/fail/unverified，不把静态代码检查称为浏览器通过。自检只在本次调用执行，不承诺后台监控。
+
+
+1.4.0 增量验收：资源报告须以最终HTML实际UTF-8字节核对，分项相加等于总字节；超限和报告路径错误不得覆盖既有HTML或源图片。图片副本除摘要和尺寸检查，还须实际查看细字、线条、公式和颜色；透明图、动画与特殊色彩模式不能静默丢失。
+
+缺章验收用 `tests/make_partial.py 工作目录/partial` 生成七章三缺章的明确合成样本，再运行 `node tests/learning-range-ui.cjs 工作目录/partial/partial.html 工作目录/checks/ranges`。确认前两章连续可用、第三至第五章待补、后两章单独列出，首章待补时不虚构起始可用段。Windows流程与实际范围见[Windows验收](windows-validation.md)。

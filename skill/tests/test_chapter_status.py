@@ -81,6 +81,25 @@ class ChapterStatusTests(unittest.TestCase):
         self.course['chapters'][1]['title'] = 'Changed sidebar label'
         self.assertEqual(self.rows()['ch1']['verification']['visual']['status'], 'stale')
 
+    def test_visible_review_result_change_expires_chapter_verification(self):
+        self.record(kind='visual')
+        self.course['semanticReviews'][0]['result'] = 'fail'
+        self.assertEqual(self.rows()['ch1']['verification']['visual']['status'], 'stale')
+
+    def test_other_chapter_content_change_expires_shared_navigation_evidence(self):
+        self.record(kind='visual')
+        self.course['chapters'][1]['sections'][0]['blocks'][0]['text'] = 'Changed shared-scope learning content.'
+        self.assertEqual(self.rows()['ch1']['verification']['visual']['status'], 'stale')
+
+    def test_independent_review_change_is_bound_but_verification_records_are_not(self):
+        before = status.chapter_binding(self.course, self.inventory, 'ch1')
+        self.course['independentReview'] = {'required': True, 'records': []}
+        after = status.chapter_binding(self.course, self.inventory, 'ch1')
+        self.assertNotEqual(before, after)
+        self.record()
+        self.course['chapterChecks'][0]['evidence'] = 'A more specific verification note.'
+        self.assertEqual(after, status.chapter_binding(self.course, self.inventory, 'ch1'))
+
     def test_fresh_review_binding_does_not_hide_invalid_integration(self):
         self.course['learningMap'][0]['summaryTargets'] = []
         self.course['learningMap'][0]['summaryNote'] = ''

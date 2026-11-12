@@ -393,7 +393,10 @@ sourceProblem=true 表示缺页、不可辨认、歧义或来源冲突，不能�
         course['acceptance'] = [{'type': 'paragraph', 'text': '本成品使用转换组件 ' + self.skill_info['version'] + '。来源与范围见首页；AI 答案逐题标记。当前正在进行浏览器与视觉检查。'}]
         save_json(root / 'course.json', course)
         output = root / 'output' / '学习教材.html'
-        self.pipeline.build(course, selected_inv, output, root)
+        resource_report = root / 'checks/resources-preliminary.json'
+        built = self.pipeline.build(course, selected_inv, output, root, size_report=resource_report)
+        size = built['resources']
+        passed('资源体积检查', f"文件 {size['totalBytes'] / 1024**2:.2f} MiB；分项和最大图片已记录，未超过当前体积上限。")
         emit('testing', '正在真实浏览器中检查离线打开、章节、作答记录和宽窄屏布局。')
         browser = self.browser_check(output, root / 'checks/browser-preliminary', self.config.browser_timeout)
         save_json(root / 'checks/browser-preliminary.json', browser)
@@ -425,7 +428,7 @@ sourceProblem=true 表示缺页、不可辨认、歧义或来源冲突，不能�
                 {'type': 'list', 'items': [str(c.get('name', c)) + '：' + str(c.get('status', '')) for c in browser.get('checks', [])]}]},
             {'type': 'paragraph', 'text': '学习记录保存在当前浏览器，不会自动写回 HTML。换设备、清理浏览器或更换文件入口前，请导出完整备份。网站上的资料会按保留期删除，请及时下载成品。'}]
         save_json(root / 'course.json', course)
-        self.pipeline.build(course, selected_inv, output, root)
+        self.pipeline.build(course, selected_inv, output, root, size_report=root / 'checks/resources-final.json')
         # Check the exact final bytes after embedding the acceptance record.
         final = self.browser_check(output, root / 'checks/browser-final', self.config.browser_timeout)
         save_json(root / 'checks/browser-final.json', final)

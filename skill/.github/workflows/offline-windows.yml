@@ -1,0 +1,66 @@
+name: Windows offline acceptance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-windows:
+    runs-on: windows-2025
+    timeout-minutes: 25
+    env:
+      PYTHONUTF8: '1'
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: skill
+          persist-credentials: false
+      - name: Check out the previous released implementation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: zjyu1712-zjy/digital-textbook-html
+          ref: e9a68b9d5d4433574c79986e521061cfe993fea5 # v1.3.0
+          path: previous-skill
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Install the tested optional image dependency
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check Pillow==13.0.0
+          exit $LASTEXITCODE
+      - name: Install the fixed browser test dependency outside the skill
+        shell: pwsh
+        run: |
+          $deps = Join-Path $env:RUNNER_TEMP 'dth-playwright-1.62.1'
+          npm install --prefix "$deps" --no-audit --no-fund --ignore-scripts --package-lock=false playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node "$deps/node_modules/playwright/cli.js" install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "PLAYWRIGHT_MODULE=$deps/node_modules/playwright" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NODE_BINARY=$((Get-Command node).Source)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Validate, build and exercise file storage in a Chinese path
+        shell: pwsh
+        run: |
+          $work = Join-Path $env:RUNNER_TEMP '数字教材 验收'
+          python "$env:GITHUB_WORKSPACE/skill/tests/windows_acceptance.py" --skill "$env:GITHUB_WORKSPACE/skill" --previous-skill "$env:GITHUB_WORKSPACE/previous-skill" --workspace "$work" --expected-system Windows
+          exit $LASTEXITCODE
+      - name: Upload explicit reports and screenshots only
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: windows-offline-evidence
+          path: ${{ runner.temp }}/数字教材 验收/artifacts
+          if-no-files-found: warn
+          retention-days: 7

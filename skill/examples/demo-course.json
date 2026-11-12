@@ -1459,6 +1459,106 @@
         "fingerprint": "e8a66a2e256a7fbd3223b1e08311d58d21e6e0c1c109c9588928cefa9a32ec8d",
         "rendererFingerprint": "818a0a6a22f576ce03e6f8c7a6dc016df439a3c987651fd2c7691880637e0174"
       }
+    },
+    {
+      "chapterId": "ch1",
+      "kind": "offline",
+      "result": "pass",
+      "reviewer": "浏览器自动检查 / Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+      "method": "file:// 断网环境中逐章、逐题打开；1440/390 像素核对章节小节、作答控件、公式、图片及横向布局。",
+      "evidence": "本章实际检查 3 个小节和 2 道题的页面结构与布局。实际输入并刷新恢复仅覆盖题目：q1。共享存储测试不扩展为本章所有题的完整作答验证；截图仅作全局可见范围核查。",
+      "checkedAt": "2026-11-12T11:06:43.843975+00:00",
+      "targetIds": [
+        "k1",
+        "k-recap",
+        "k-ref",
+        "ex1",
+        "q1"
+      ],
+      "checks": [
+        "all-routes-layout"
+      ],
+      "artifactSHA256": "db3b3197ae98988026d0cd1bcabfdc4b0aa33cfa883343da26f4f658a4b90d32",
+      "binding": {
+        "version": 1,
+        "fingerprint": "91b8d47014c982fae207c6b09fccc6fd73e345615266ffdad3bf35b8bc413d45",
+        "rendererFingerprint": "f938134e4b6691e56f695d96b33dd3dc049bfa1f812ede03d2a772ce805f475c"
+      }
+    },
+    {
+      "chapterId": "ch2",
+      "kind": "offline",
+      "result": "pass",
+      "reviewer": "浏览器自动检查 / Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36 Edg/157.0.0.0",
+      "method": "file:// 断网环境中逐章、逐题打开；1440/390 像素核对章节小节、作答控件、公式、图片及横向布局。",
+      "evidence": "本章实际检查 2 个小节和 4 道题的页面结构与布局。实际输入并刷新恢复仅覆盖题目：q-count、q-formula、q-table。共享存储测试不扩展为本章所有题的完整作答验证；截图仅作全局可见范围核查。",
+      "checkedAt": "2026-11-12T11:06:43.843975+00:00",
+      "targetIds": [
+        "k-mean",
+        "k-mean-recap",
+        "q-count",
+        "q-formula",
+        "q-mean",
+        "q-table"
+      ],
+      "checks": [
+        "all-routes-layout"
+      ],
+      "artifactSHA256": "db3b3197ae98988026d0cd1bcabfdc4b0aa33cfa883343da26f4f658a4b90d32",
+      "binding": {
+        "version": 1,
+        "fingerprint": "76f2bffb920f7802ec0d6024bee880152fb11d253e97b0cbebd6141e5eabd27e",
+        "rendererFingerprint": "f938134e4b6691e56f695d96b33dd3dc049bfa1f812ede03d2a772ce805f475c"
+      }
+    },
+    {
+      "chapterId": "ch1",
+      "kind": "visual",
+      "result": "pass",
+      "reviewer": "maintainer-visual-review-140",
+      "method": "Microsoft Edge 157，真实file://断网，1440及390像素页面布局检查；逐张查看两章完整截图。",
+      "evidence": "已检查本章所有学习小节的正文、列表、公式/表格（若有）、来源折叠和章首状态；文字与控件无重叠，公式清楚，未见全页横向溢出。此条仅覆盖章节阅读，不扩展到本章所有题目的作答页面。",
+      "checkedAt": "2026-11-12T11:06:43.850416+00:00",
+      "targetIds": [
+        "k1",
+        "k-recap",
+        "k-ref"
+      ],
+      "checks": [
+        "chapter-reading-desktop-and-narrow",
+        "visible-formula-table-and-text",
+        "chapter-header-hierarchy"
+      ],
+      "artifactSHA256": "db3b3197ae98988026d0cd1bcabfdc4b0aa33cfa883343da26f4f658a4b90d32",
+      "binding": {
+        "version": 1,
+        "fingerprint": "91b8d47014c982fae207c6b09fccc6fd73e345615266ffdad3bf35b8bc413d45",
+        "rendererFingerprint": "f938134e4b6691e56f695d96b33dd3dc049bfa1f812ede03d2a772ce805f475c"
+      }
+    },
+    {
+      "chapterId": "ch2",
+      "kind": "visual",
+      "result": "pass",
+      "reviewer": "maintainer-visual-review-140",
+      "method": "Microsoft Edge 157，真实file://断网，1440及390像素页面布局检查；逐张查看两章完整截图。",
+      "evidence": "已检查本章所有学习小节的正文、列表、公式/表格（若有）、来源折叠和章首状态；文字与控件无重叠，公式清楚，未见全页横向溢出。此条仅覆盖章节阅读，不扩展到本章所有题目的作答页面。",
+      "checkedAt": "2026-11-12T11:06:43.852117+00:00",
+      "targetIds": [
+        "k-mean",
+        "k-mean-recap"
+      ],
+      "checks": [
+        "chapter-reading-desktop-and-narrow",
+        "visible-formula-table-and-text",
+        "chapter-header-hierarchy"
+      ],
+      "artifactSHA256": "db3b3197ae98988026d0cd1bcabfdc4b0aa33cfa883343da26f4f658a4b90d32",
+      "binding": {
+        "version": 1,
+        "fingerprint": "76f2bffb920f7802ec0d6024bee880152fb11d253e97b0cbebd6141e5eabd27e",
+        "rendererFingerprint": "f938134e4b6691e56f695d96b33dd3dc049bfa1f812ede03d2a772ce805f475c"
+      }
     }
   ]
 }

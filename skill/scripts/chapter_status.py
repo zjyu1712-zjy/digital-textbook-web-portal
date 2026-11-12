@@ -10,9 +10,10 @@ import json
 import re
 
 from review_audit import (_context, _coverage_targets, _map_targets, _teaching,
-                          audit_reviews, review_fingerprint, validate_learning_map)
+                          _source_ids, audit_reviews, review_fingerprint, validate_learning_map)
 from independent_audit import audit_independent
 from task_contract import validate_contract
+from grading import validate_grading
 
 
 def _digest(value):
@@ -54,13 +55,192 @@ def _reference_visible(target):
     return visible(target.get('blocks', target.get('prompt', [])))
 
 
+def validate_learning_scope(course):
+    """Validate declared gaps, never accept a caller's claimed ready status."""
+    if not isinstance(course, dict):
+        return ['learning scope: course must be an object']
+    errors = []
+    scope = course.get('scope')
+    if (not isinstance(scope, dict) or scope.get('completeness') not in
+            ('complete', 'excerpt', 'incomplete') or not _text(scope.get('description'))):
+        errors.append('learning scope: valid scope completeness and description required')
+    complete = isinstance(scope, dict) and scope.get('completeness') == 'complete'
+    for index, chapter in enumerate(_rows(course.get('chapters'))):
+        if not isinstance(chapter, dict):
+            continue
+        label = 'chapters[' + str(index) + ']'
+        pending = chapter.get('pending')
+        if 'pending' in chapter:
+            if not isinstance(pending, dict) or not _text(pending.get('reason')):
+                errors.append(label + '.pending requires a nonempty reason')
+            if complete:
+                errors.append(label + ': pending chapter cannot be marked complete')
+        if chapter.get('sections') == [] and not (isinstance(pending, dict) and _text(pending.get('reason'))):
+            errors.append(label + ': empty chapter requires pending.reason')
+    contract = course.get('taskContract')
+    if isinstance(contract, dict):
+        for index, pending in enumerate(_rows(contract.get('pendingMaterials'))):
+            if not isinstance(pending, dict):
+                continue
+            label = 'taskContract.pendingMaterials[' + str(index) + ']'
+            required = pending.get('required', True)
+            if type(required) is not bool:
+                errors.append(label + '.required must be boolean')
+            elif not required and not _text(pending.get('optionalReason')):
+                errors.append(label + ': optional material requires optionalReason')
+            elif required and complete:
+                errors.append(label + ': required pending material cannot be marked complete')
+    return errors
+
+
+def _question_gaps(question):
+    """A question stays a question even if one of its required keys is absent."""
+    gaps = []
+    if not _reference_visible({'blocks': question.get('prompt')}):
+        gaps.append('题干待补')
+    answer = question.get('answer')
+    if (not isinstance(answer, dict) or answer.get('status') != 'ready'
+            or not _reference_visible({'blocks': answer.get('blocks')})):
+        gaps.append('题目答案或解析待补')
+    parts = question.get('parts')
+    valid = isinstance(parts, list) and bool(parts)
+    part_ids, field_ids = set(), set()
+    field_kinds = {'text', 'fill', 'number', 'choice', 'multiple', 'formula', 'matrix', 'journal', 'table'}
+    for part in _rows(parts):
+        if not isinstance(part, dict) or not _text(part.get('id')) or part['id'] in part_ids:
+            valid = False
+            continue
+        part_ids.add(part['id'])
+        fields = part.get('fields')
+        if not isinstance(fields, list) or not fields:
+            valid = False
+        for field in _rows(fields):
+            if (not isinstance(field, dict) or not _text(field.get('id')) or field['id'] in field_ids
+                    or not _text(field.get('label')) or field.get('kind') not in field_kinds):
+                valid = False
+                continue
+            field_ids.add(field['id'])
+            if field['kind'] in ('choice', 'multiple'):
+                options = field.get('options')
+                if not isinstance(options, list) or not options:
+                    valid = False
+                elif any(not (_text(o) or isinstance(o, dict) and _text(o.get('value')) and _text(o.get('label')))
+                         for o in options):
+                    valid = False
+            if field['kind'] in ('matrix', 'journal', 'table'):
+                columns, rows = field.get('columns'), field.get('rows')
+                if (not isinstance(columns, list) or not columns or not isinstance(rows, list) or not rows
+                        or any(not isinstance(r, list) or len(r) != len(columns) for r in rows)):
+                    valid = False
+    if not valid:
+        gaps.append('题目作答小问或输入字段待补')
+    if validate_grading(question):
+        gaps.append('题目判分规则待修复')
+    return gaps
+
+
+def _availability(course, cid, chapter, ids, relevant, complete, targets, items,
+                  locations, uses, by_review, invalid_items, global_errors,
+                  unassigned, pending_materials, independent):
+    """Separate declared reference-only gaps from the actual learning path."""
+    learning_items = [iid for iid in relevant if uses.get((items[iid].get('sourceId'), cid)) != 'reference']
+    reference_items = set(relevant) - set(learning_items)
+    reference_ids = {tid for tid in ids if _source_ids(targets[tid]) and
+                     all(uses.get((sid, cid)) == 'reference' for sid in _source_ids(targets[tid]))}
+    learning_ids = sorted(set(ids) - reference_ids)
+    blockers = []
+    def block(key, kind, message, **extra):
+        if not any(x['id'] == key for x in blockers):
+            blockers.append({'id': key, 'kind': kind, 'message': message, **extra})
+    if global_errors:
+        block('scope:' + cid, 'scope', '资料范围或记录格式待核对，尚不能确认本章可连续学习。')
+    if unassigned:
+        block('unassigned:' + cid, 'scope', '仍有原资料条目未确定所属章节。', sourceItemIds=list(unassigned))
+    sampled = next((c for c in independent.get('chapters', []) if c.get('chapterId') == cid), {})
+    sample_status = sampled.get('status')
+    required_sampling = isinstance(course.get('independentReview'), dict) and course['independentReview'].get('required') is True
+    if (independent.get('status') == 'invalid' or sample_status in ('failed', 'invalid', 'stale')
+            or (required_sampling and sample_status != 'sampled-pass')):
+        block('sampling:' + cid, 'review', '本次要求的独立抽检尚未完成，或已发现需要处理的问题。')
+    if not learning_ids or not chapter.get('sections'):
+        block('empty:' + cid, 'content', '本章学习内容尚未整理；仅保留目录或对照材料。')
+    if not learning_items:
+        block('inventory:' + cid, 'scope', '本章学习内容尚未与独立原资料清单对应。')
+    for iid in learning_items:
+        if iid not in complete or iid in invalid_items:
+            block('item:' + iid, 'mapping', '来源条目尚未完整融入本章学习内容。', sourceItemId=iid)
+    ready_targets = 0
+    legacy = course.get('schemaVersion') != 2
+    question_ids = {q['id'] for q in _rows(course.get('questions')) if isinstance(q, dict) and _text(q.get('id'))}
+    for tid in learning_ids:
+        target = targets[tid]
+        reasons = []
+        if not _teaching(target):
+            reasons.append('缺少可阅读的学习内容')
+        if legacy:
+            reasons.append('旧版审校记录尚未与当前内容绑定')
+        elif by_review.get(tid) != 'fresh':
+            reasons.append('当前内容尚未完成有效审校')
+        if tid in question_ids:
+            reasons.extend(_question_gaps(target))
+        if reasons:
+            block('target:' + tid, 'learning', '；'.join(reasons) + '。', targetId=tid)
+        else:
+            ready_targets += 1
+    pending = chapter.get('pending')
+    if isinstance(pending, dict) and _text(pending.get('reason')):
+        block('chapter:' + cid, 'material', pending['reason'])
+    optional = []
+    for index, material in pending_materials:
+        if material.get('chapterId') != cid:
+            continue
+        if material.get('required', True) is False and _text(material.get('optionalReason')):
+            optional.append({'description': material.get('description', ''), 'reason': material['optionalReason']})
+        else:
+            block('material:' + str(index), 'material', material.get('description') or '必要资料待补。')
+    # Valid source-only references may stay pending without disabling the lessons.
+    reference_pending = sum(i not in complete or i in invalid_items for i in reference_items)
+    reference_pending += sum(by_review.get(t) != 'fresh' for t in reference_ids)
+    state = 'ready' if not blockers else ('partial' if learning_ids and chapter.get('sections') else 'pending')
+    return {'status': state, 'learningTargetCount': len(learning_ids), 'readyTargetCount': ready_targets,
+            'blockingItems': blockers, 'optionalMaterials': optional,
+            'referencePendingCount': reference_pending,
+            'note': '可学习表示本次收录的学习内容和答案已整理且审校记录有效；不等于浏览器、视觉或学术正确性的保证。'}
+
+
+def _learning_range(course, rows, invalid=False):
+    ranges, current = [], []
+    for row in rows:
+        if row.get('availability', {}).get('status') == 'ready':
+            current.append(row)
+        elif current:
+            ranges.append(current)
+            current = []
+    if current:
+        ranges.append(current)
+    prefix = ranges[0] if ranges and rows and ranges[0][0]['chapterId'] == rows[0]['chapterId'] else []
+    counts = {state: sum(r.get('availability', {}).get('status') == state for r in rows)
+              for state in ('ready', 'partial', 'pending')}
+    return {'status': 'invalid' if invalid else 'reported', 'scope': 'included-chapters',
+            'scopeDescription': course.get('scope', {}).get('description', ''),
+            'scopeCompleteness': course.get('scope', {}).get('completeness'),
+            'chapterCount': len(rows), 'readyChapterCount': counts['ready'],
+            'partialChapterCount': counts['partial'], 'pendingChapterCount': counts['pending'],
+            'blockingItemCount': sum(len(r['availability']['blockingItems']) for r in rows),
+            'optionalMaterialCount': sum(len(r['availability']['optionalMaterials']) for r in rows),
+            'prefixChapterIds': [r['chapterId'] for r in prefix],
+            'readyRanges': [{'chapterIds': [r['chapterId'] for r in group],
+                             'titles': [r['title'] for r in group]} for group in ranges],
+            'note': '仅按本次收录章节的顺序计算；第一段从本次首章开始，不推断原书第一章或未收录章节。功能与视觉验收另列。'}
+
+
 def renderer_fingerprint():
     """Bind verification to the actual local builder and packaged UI bytes."""
     root = Path(__file__).resolve().parents[1]
     paths = list((root / 'assets').rglob('*'))
     paths += [root / 'scripts' / name for name in
               ('pipeline.py', 'chapter_status.py', 'independent_audit.py',
-               'grading.py', 'review_audit.py', 'task_contract.py')]
+               'grading.py', 'review_audit.py', 'task_contract.py', 'resource_budget.py')]
     return _digest({p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                     for p in sorted(paths) if p.is_file()})
 
@@ -77,8 +257,16 @@ def chapter_binding(course, inventory, chapter_id):
                'reviewFingerprint': review_fingerprint(course, inventory, ids),
                'inventory': inventory, 'courseVersion': course.get('version'),
                'bookTitle': course.get('title'), 'scope': course.get('scope'),
-               'chapterNavigation': [{'id': c['id'], 'title': c.get('title')}
-                                     for c in course.get('chapters', [])]}
+               'chapterNavigation': [{'id': c['id'], 'title': c.get('title'), 'pending': c.get('pending')}
+                                     for c in course.get('chapters', [])],
+               # Every chapter shares the navigation and learning-range summary.
+               # Bind those inputs, including visible review decisions, while
+               # excluding evidence added by the checks themselves.
+               'sharedLearningInputs': {k: course.get(k) for k in
+                   ('schemaVersion', 'id', 'title', 'edition', 'version', 'scope',
+                    'organization', 'taskContract', 'sources', 'disciplines',
+                    'chapters', 'questions', 'exams', 'coverage', 'learningMap',
+                    'semanticReviews', 'independentReview', 'issues', 'migrations')}}
     return {'version': 1, 'fingerprint': _digest(payload),
             'rendererFingerprint': renderer_fingerprint()}
 
@@ -178,6 +366,7 @@ def _chapter_status(course, inventory):
     semantic = audit_reviews(course, inventory)
     map_errors = validate_learning_map(course, inventory)
     contract_errors = validate_contract(course) if course.get('schemaVersion') == 2 else []
+    scope_errors = validate_learning_scope(course)
     invalid_items, global_map_errors = set(), []
     for error in map_errors:
         match = re.match(r'^learningMap ([^:]+):', error)
@@ -191,6 +380,11 @@ def _chapter_status(course, inventory):
     by_review = {r['targetId']: r['status'] for r in semantic.get('targets', [])}
     coverage = {r.get('sourceItemId'): r for r in _rows(course.get('coverage')) if isinstance(r, dict)}
     mapping = {r.get('sourceItemId'): r for r in _rows(course.get('learningMap')) if isinstance(r, dict)}
+    contract = course.get('taskContract', {})
+    uses = {(u.get('sourceId'), cid): u.get('usage') for u in _rows(contract.get('sourceUses'))
+            if isinstance(u, dict) for cid in _rows(u.get('chapterIds'))}
+    pending_materials = [(i, p) for i, p in enumerate(_rows(contract.get('pendingMaterials')))
+                         if isinstance(p, dict)]
     reference_targets, learning_targets = set(), set()
     for mapped in mapping.values():
         (reference_targets if mapped.get('disposition') == 'reference-only' else learning_targets).update(_map_targets(mapped))
@@ -218,6 +412,11 @@ def _chapter_status(course, inventory):
             cover, mapped = coverage.get(iid, {}), mapping.get(iid, {})
             linked = _coverage_targets(cover)
             valid = cover.get('status') == 'covered' and linked and linked <= set(targets)
+            expected = items[iid].get('expectedParts', [])
+            actual = {part.get('id') for tid in linked if tid in targets
+                      for part in _rows(targets[tid].get('parts'))
+                      if isinstance(part, dict) and _text(part.get('id'))}
+            valid = valid and _strings(expected) and set(expected) <= actual
             if course.get('schemaVersion') == 2:
                 valid = valid and mapped.get('disposition') in ('integrated', 'reference-only')
             if valid and iid not in invalid_items and not global_map_errors and not contract_errors:
@@ -250,13 +449,18 @@ def _chapter_status(course, inventory):
                      'content': {'status': content, 'mappedCount': len(complete), 'itemCount': len(relevant),
                                  'missingItemIds': sorted(set(relevant) - set(complete)), 'emptyTargetIds': empty},
                      'review': {'status': review, 'currentCount': statuses.count('fresh'), 'targetCount': len(ids)},
+                     'availability': _availability(course, cid, chapter, ids, relevant, complete, targets,
+                         items, locations, uses, by_review, invalid_items,
+                         global_map_errors + contract_errors + review_record_errors + scope_errors,
+                         unassigned, pending_materials, independent),
                      'independent': by_independent.get(cid, {'chapterId': cid, 'selectedCount': 0,
                                                            'reviewedCount': 0, 'status': 'not-reviewed'}),
                      'verification': {kind: _verification(course, inventory, cid, kind, ids,
                                         (chapters, targets, locations), binding) for kind in ('offline', 'visual')}})
     return {'chapters': rows, 'unassignedItems': sorted(unassigned),
+            'learningRange': _learning_range(course, rows, bool(scope_errors or contract_errors or global_map_errors or review_record_errors)),
             'errors': list(dict.fromkeys(validate_chapter_checks(course, inventory) + map_errors
-                                         + contract_errors + review_record_errors)),
+                                         + contract_errors + review_record_errors + scope_errors)),
             'note': '内容映射不是正确性结论；抽检仅覆盖所列样本；功能与视觉只汇总实际记录范围。'}
 
 

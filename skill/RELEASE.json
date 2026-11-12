@@ -1,15 +1,15 @@
 {
   "name": "digital-textbook-html",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "contentSchemaVersion": 2,
   "backupFormatVersion": 1,
   "personalPreferencesVersion": 2,
   "privateCourseMaterialsIncluded": false,
   "changes": [
-    "Add a version-aware mistake notebook backed by immutable attempts and events, with explicit review state and attachment-inclusive export.",
-    "Add reproducible source-first independent sampling with separate observations, content bindings and no automatic academic pass.",
-    "Derive per-chapter content, review, sampling, offline and visual status from actual scoped evidence.",
-    "Integrate independent sampling and current skill checks into the web portal without changing learner storage or backup format."
+    "Report exact packaged resource bytes with configurable warning and hard limits.",
+    "Provide explicit, non-overwriting image optimization with preserved provenance.",
+    "Show usable chapter ranges and scoped readiness without manufacturing validation.",
+    "Add Windows offline browser acceptance with versioned public fixtures."
   ],
   "supportedContentSchemaVersions": [
     1,

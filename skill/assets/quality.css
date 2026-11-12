@@ -11,4 +11,12 @@
 .chapter-quality-body{border-top:1px solid var(--line);margin-top:12px;padding-top:4px;font-size:13px;overflow-wrap:anywhere}
 .chapter-verification h3{font-size:15px;margin:20px 0 6px}.chapter-verification p{margin:6px 0}
 .chapter-overview th{white-space:normal}.chapter-overview td{vertical-align:top}
+.learning-progress{border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin:22px 0;background:#eef1e9;overflow-wrap:anywhere}
+.learning-progress-heading{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:5px 20px}
+.learning-progress h2{font-size:18px;margin:0 0 10px}.learning-progress p{margin:7px 0}.learning-progress-heading p{font-size:14px}
+.learning-progress progress{display:block;width:100%;height:8px;border:0;border-radius:8px;overflow:hidden;accent-color:var(--accent);background:var(--line);margin:6px 0 12px}
+.learning-progress progress::-webkit-progress-bar{background:var(--line)}.learning-progress progress::-webkit-progress-value{background:var(--accent)}
+.learning-progress-note{color:var(--muted);font-size:12px;line-height:1.7}.learning-prefix{font-size:14px}.learning-progress details{background:transparent;padding:7px 10px;font-size:13px;margin-top:12px}
+.chapter-availability h3{font-size:15px;margin:14px 0 6px}.chapter-availability p{margin:6px 0}.chapter-availability ul{padding-left:20px}
 @media(max-width:600px){.chapter-quality>summary{gap:8px 12px}.chapter-quality>summary>.chapter-status-summary{width:100%;gap:4px 12px}.chapter-quality{padding:11px 13px}.chapter-status-summary{gap:4px 12px}}
+@media(max-width:600px){.learning-progress{padding:15px}.learning-progress-heading{display:block}}
