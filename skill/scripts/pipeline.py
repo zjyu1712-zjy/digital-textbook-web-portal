@@ -203,7 +203,7 @@ def build(data,inventory,dest,asset_root,allow_incomplete=False,node=None,*,warn
  resources=analyze_html(shell,warning_bytes=warning_bytes,limit_bytes=limit_bytes)
  if size_report is not None:write(size_report,resources)
  enforce_budget(resources)
- dest=Path(dest);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(shell,encoding="utf-8")
+ dest=Path(dest);dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes(shell.encode("utf-8"))
  issues=inspect_html(dest)
  if issues:raise ValueError('packaging validation: '+str(issues))
  d['validation']['resources']=resources
